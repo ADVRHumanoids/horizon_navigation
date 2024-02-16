@@ -1,0 +1,45 @@
+<launch>
+    
+    <node name="pointcloud_to_laserscan_front" pkg="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node" >
+      <remap from="cloud_in" to="/VLP16_lidar_front/velodyne_points" />
+      <remap from="scan" to="/VLP16_lidar_front/scan" />
+      <rosparam>
+        target_frame: base_link
+        transform_tolerance: 0.01
+        min_height: 0.0
+        max_height: 10.0
+        
+        angle_min: -3.14 #-1.5708 # REQUIRED to update correctly costmap2d
+        angle_max: 3.14 # REQUIRED to update correctly costmap2d
+        angle_increment: 0.001 # REQUIRED to update correctly costmap2d
+        scan_time: 0.1 # REQUIRED to update correctly costmap2d
+        range_min: 0.0 # REQUIRED to update correctly costmap2d
+        range_max: 10.0 # REQUIRED to update correctly costmap2d
+      </rosparam>
+    </node>
+
+    <node name="pointcloud_to_laserscan_back" pkg="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node" >
+      <remap from="cloud_in" to="/VLP16_lidar_back/velodyne_points" />
+      <remap from="scan" to="/VLP16_lidar_back/scan" />
+      <rosparam>
+        target_frame: base_link
+        transform_tolerance: 0.01
+        min_height: 0.0
+        max_height: 10.0
+        
+        angle_min: -3.14 # 1.57 # REQUIRED to update correctly costmap2d
+        angle_max: 3.14 # 6.28 # REQUIRED to update correctly costmap2d
+        angle_increment: 0.001 # REQUIRED to update correctly costmap2d
+        scan_time: 0.1 # REQUIRED to update correctly costmap2d
+        range_min: 0.0 # REQUIRED to update correctly costmap2d
+        range_max: 10.0 # REQUIRED to update correctly costmap2d
+      </rosparam>
+    </node>
+
+
+    <!-- Run the costmap node -->
+    <node name="costmap_node" pkg="costmap_2d" type="costmap_2d_node" >
+      <rosparam file="$(find horizon_navigation)/config/local_costmap_params.yaml" command="load" ns="costmap" />
+    </node>
+
+  </launch>

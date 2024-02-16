@@ -1,0 +1,63 @@
+# basic params
+global_frame: base_link
+robot_base_frame: base_link
+update_frequency: 5.0
+publish_frequency: 5.0
+
+# use_sim_time: true
+# cost_scaling_factor: 0.2
+
+# map
+static_map: false
+rolling_window: true
+width: 6.0
+height: 6.0
+resolution: 0.05
+# map_type: costmap
+
+# obstacles
+transform_tolerance: 0.4
+obstacle_range: 6.0
+raytrace_range: 6.0
+
+# robot footprint
+footprint: [[-0.6, -0.37], [-0.6, 0.37], [0.6, 0.37], [0.6, -0.37]]
+# footprint_padding: 0.1
+
+track_unknown_space: true
+always_send_full_costmap: true
+inflation_radius: 0.02
+
+observation_sources:  VLP16_lidar_back VLP16_lidar_front
+
+VLP16_lidar_front:
+  sensor_frame: VLP16_lidar_front
+  topic: /VLP16_lidar_front/scan
+  max_obstacle_height: 10.0
+  min_obstacle_height: 0.0
+  obstacle_max_range: 6.0
+  obstacle_min_range: 0.0
+  raytrace_max_range: 6.0
+  raytrace_min_range: 0.0
+  observation_persistence: 0.0
+  expected_update_rate: 0.3
+  clearing: true
+  marking: true
+  inf_is_valid: true
+  data_type: LaserScan
+
+VLP16_lidar_back:
+  sensor_frame: VLP16_lidar_back
+  topic: /VLP16_lidar_back/scan
+  max_obstacle_height: 10.0
+  min_obstacle_height: 0.0
+  obstacle_max_range: 6.0
+  obstacle_min_range: 0.0
+  raytrace_max_range: 6.0
+  raytrace_min_range: 0.0
+  observation_persistence: 0.0
+  expected_update_rate: 0.3
+  clearing: true
+  marking: true
+  # inf_is_valid: true
+  data_type: LaserScan
