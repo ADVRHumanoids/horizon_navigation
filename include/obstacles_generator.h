@@ -22,6 +22,7 @@ public:
     typedef std::shared_ptr<ObstacleGenerator> Ptr;
 
     casadi::Function gaussObstacle();
+    casadi::Function simpleObstacle();
 
 private:
 

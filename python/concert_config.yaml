@@ -1,5 +1,5 @@
 solver:
-  type: ilqr
+  type: ipopt # ilqr # ipopt
   ipopt.linear_solver: ma57
   ipopt.tol: 0.1
   ilqr.tol: 0.01
@@ -22,9 +22,8 @@ constraints:
   - rolling_contact_2
   - rolling_contact_3
   - rolling_contact_4
-
-costs:
   - final_base_xy
+costs:
   - velocity_regularization
   - acceleration_regularization
   - posture_cart
@@ -86,15 +85,15 @@ rolling_contact_4:
 posture_cart:
   type: Postural
   weight: *w_postural_cart
-#  indices: [0, 2, 4, 6] # wheels at the beginning of q
-  indices: [6, 8, 10, 12]
+  indices: [0, 2, 4, 6] # wheels at the beginning of q
+#  indices: [6, 8, 10, 12]
   nodes: all
 
 posture_arm:
   type: Postural
   weight: *w_postural_arm
-#  indices: [8, 9, 10, 11, 12, 13] # wheels at the beginning of q
-  indices: [0, 1, 2, 3, 4, 5]
+  indices: [8, 9, 10, 11, 12, 13] # wheels at the beginning of q
+#  indices: [0, 1, 2, 3, 4, 5]
   nodes: all
 
 # todo: wrong, as the order COUNTS. If I add the contacts after the joint regularization, they wont get considered.

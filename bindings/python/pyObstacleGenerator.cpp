@@ -5,19 +5,37 @@
 namespace py = pybind11;
 
 
-PYBIND11_MODULE(pyobstacleGenerator, m) {
+template <typename T, typename... Args>
+auto make_deserialized(casadi::Function (T::* mem_fn)(Args... args))
+{
+
+    // make lambda to create deserialized function
+    auto deserialized = [mem_fn](T& self, Args... args)
+    {
+        // call member function
+        auto fn = (self.*mem_fn)(args...);
+
+#if PYBIND11_VERSION_MINOR > 6
+        auto cs = py::module_::import("casadi");
+#else
+        auto cs = py::module::import("casadi");
+#endif
+        auto Function = cs.attr("Function");
+        auto deserialize = Function.attr("deserialize");
+        return deserialize(fn.serialize());
+    };
+
+    return deserialized;
+}
+
+PYBIND11_MODULE(pyObstacleGenerator, m) {
 
     py::class_<ObstacleGenerator, ObstacleGenerator::Ptr>(m, "ObstacleGenerator")
             .def(py::init<>())
-            .def("gaussObstacle", &ObstacleGenerator::gaussObstacle)
-//            .def("addPhase", static_cast<bool (SinglePhaseManager::*)(std::vector<Phase::Ptr>, int, bool)>(&SinglePhaseManager::addPhase), py::arg("phases"), py::arg("pos") = -1, py::arg("absolute_position") = false)
-//            .def("addPhase", static_cast<bool (SinglePhaseManager::*)(Phase::Ptr, int, bool)>(&SinglePhaseManager::addPhase), py::arg("phase"), py::arg("pos") = -1, py::arg("absolute_position") = false)
-//            .def("getRegisteredPhase", &SinglePhaseManager::getRegisteredPhase)
-//            .def("getRegisteredPhases", &SinglePhaseManager::getRegisteredPhases)
-//            .def("getEmptyNodes", &SinglePhaseManager::getEmptyNodes)
-//            .def("getActivePhases", &SinglePhaseManager::getActivePhases)
-//            .def("getPhases", &SinglePhaseManager::getPhases)
-//            .def("shift", &SinglePhaseManager::shift)
-//            .def("clear", &SinglePhaseManager::clear)
+            .def("gaussObstacle",
+                  make_deserialized(&ObstacleGenerator::gaussObstacle))
+            .def("simpleObstacle",
+                  make_deserialized(&ObstacleGenerator::simpleObstacle))
+
             ;
 }
