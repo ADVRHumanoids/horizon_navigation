@@ -16,10 +16,10 @@ if(${pybind11_FOUND})
       OUTPUT_STRIP_TRAILING_WHITESPACE)
 
     include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-    pybind11_add_module(pyobstacle pyObstacleGenerator.cpp)
-    target_link_libraries(pyobstacle PUBLIC obstacles_generator)
+    pybind11_add_module(pyobstacleGenerator pyObstacleGenerator.cpp)
+    target_link_libraries(pyobstacleGenerator PUBLIC horizon_navigation)
 
-    install(TARGETS pyobstacle
+    install(TARGETS pyobstacleGenerator
             DESTINATION ${PYTHON_SITE}/${PROJECT_NAME})
 
     install(FILES __init__.py DESTINATION ${PYTHON_SITE}/${PROJECT_NAME})

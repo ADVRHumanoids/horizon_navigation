@@ -17,7 +17,6 @@ set(LIBRARY_TARGET_NAME horizon_navigation) # set library name
 
 add_library(${LIBRARY_TARGET_NAME} SHARED
   src/obstacles_generator.cpp
-  src/obstacle.cpp
 )
 
 target_link_libraries(${LIBRARY_TARGET_NAME}
@@ -43,5 +42,5 @@ install(TARGETS  ${LIBRARY_TARGET_NAME}
 #                            VARS_PREFIX ${LIBRARY_TARGET_NAME}
 #                            NO_CHECK_REQUIRED_COMPONENTS_MACRO)
 
-#add_subdirectory(bindings/python/)
+add_subdirectory(bindings/python/)
 # add_subdirectory(tests/)

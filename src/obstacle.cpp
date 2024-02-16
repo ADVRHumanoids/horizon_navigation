@@ -34,22 +34,17 @@ Obstacle::Obstacle(Eigen::Vector2d origin)
 
 //}
 
-casadi::Function Obstacle::createObstacle()
+casadi::Function Obstacle::obstacleFunction()
 {
-    casadi::SX cazz = casadi::SX::sym("cazz");
-//    casadi::SX cazzi = casadi::pow(cazz, 2) + 10;
-    auto cazzi = casadi::pow(cazz, 2);
     // simple gaussian curve
-//    auto fx = _pos(0) - _origin(0);
-//    auto cazzi = casadi::pow(_pos(0) - _origin(0), 2);
-//    auto fx = casadi::pow(_pos(0) - _origin(0), 2) / (2 * std::pow(_sigma(0), 2));
-//    auto fy = casadi::pow(_pos(1) - _origin(1), 2) / (2 * std::pow(_sigma(1), 2));
+    auto fx = casadi::SX::pow(_pos(0) - _origin(0), 2) / (2 * casadi::SX::pow(_sigma(0), 2));
+    auto fy = casadi::SX::pow(_pos(1) - _origin(1), 2) / (2 * casadi::SX::pow(_sigma(1), 2));
 
-//    auto f = _amplitude * (- (fx + fy));
+    auto f = _amplitude * (- (fx + fy));
 
-//    casadi::Function Obstacle("obstacle", {_pos, _origin, _sigma, _amplitude}, {f}, {"pos", "origin", "sigma", "amplitude"}, {"obstacle"});
+    casadi::Function Obstacle("obstacle", {_pos, _origin, _sigma, _amplitude}, {f}, {"pos", "origin", "sigma", "amplitude"}, {"obstacle"});
 
-//    return Obstacle;
+    return Obstacle;
 
 }
 

@@ -6,6 +6,7 @@
 // #include <vector>
 // #include <iostream>
 #include <memory>
+#include <casadi/casadi.hpp>
 // #include <stdexcept>
 // #include <unordered_set>
 //#include <any>
@@ -20,8 +21,11 @@ public:
     ObstacleGenerator();
     typedef std::shared_ptr<ObstacleGenerator> Ptr;
 
+    casadi::Function gaussObstacle();
 
 private:
+
+
 
 
 };

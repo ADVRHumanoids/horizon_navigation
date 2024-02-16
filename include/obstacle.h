@@ -13,12 +13,12 @@ class Obstacle
 {
     public:
 
-        Obstacle(Eigen::Vector2d origin);
+        Obstacle();
 
 //        double amplitude,
 //        Eigen::Ref<const Eigen::Vector2d> sigma
 
-        casadi::Function createObstacle();
+        casadi::Function obstacleFunction();
 
     private:
 
