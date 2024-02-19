@@ -1,5 +1,5 @@
 solver:
-  type: ipopt # ilqr # ipopt
+  type: ilqr # ilqr # ipopt
   ipopt.linear_solver: ma57
   ipopt.tol: 0.1
   ilqr.tol: 0.01
@@ -13,15 +13,19 @@ solver:
   ilqr.codegen_enabled: true
   ilqr.codegen_workdir: /tmp/soafwg
   ilqr.enable_gn: true
+  ilqr.step_length_threshold: 0.0
+#  ilqr.step_length: 0.01
+#  ilqr.max_iter: 100
+#  ilqr.enable_line_search: true
   ilqr.hxx_reg_base: 0.0
-  ilqr.n_threads: 0
+#  ilqr.alpha_min: 1e-6
   print_time: 0
 
 constraints:
-  - rolling_contact_1
-  - rolling_contact_2
-  - rolling_contact_3
-  - rolling_contact_4
+#  - rolling_contact_1
+#  - rolling_contact_2
+#  - rolling_contact_3
+#  - rolling_contact_4
   - final_base_xy
 costs:
   - velocity_regularization

@@ -14,7 +14,7 @@ import subprocess
 import os
 from cartesian_interface.pyci_all import *
 from horizon_navigation.pyObstacleGenerator import ObstacleGenerator
-from visualization_msgs.msg import Marker
+from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import Point
 
 xbot_mode = True
@@ -48,6 +48,59 @@ kin_dyn = casadi_kin_dyn.CasadiKinDyn(urdf)
 '''
 Build ModelInterface and RobotStatePublisher
 '''
+
+class obstacleViz:
+    def __init__(self):
+
+        self.obstacle_pub = None
+        self.obstacle_markers = MarkerArray()
+
+        self.marker_id = 0
+
+        self.__initialize_pub()
+
+
+    def __initialize_pub(self):
+
+        self.obstacle_pub = rospy.Publisher(f'obstacles', MarkerArray, queue_size=10)
+
+    def add_obstacle(self, origin, radius, color_rgba=None):
+
+        if color_rgba is None:
+            color_rgba = [1, 1, 0, 1]
+
+        self.obstacle_marker = Marker()
+        self.obstacle_marker.header.frame_id = "world"
+        self.obstacle_marker.header.stamp = rospy.Time.now()
+        self.obstacle_marker.ns = "sphere"
+        self.obstacle_marker.id = self.marker_id
+        self.obstacle_marker.type = Marker.SPHERE
+        self.obstacle_marker.action = Marker.ADD
+        self.obstacle_marker.pose.position.x = origin[0]
+        self.obstacle_marker.pose.position.y = origin[1]
+        self.obstacle_marker.pose.position.z = 0  # Adjust as necessary
+        self.obstacle_marker.pose.orientation.x = 0.0
+        self.obstacle_marker.pose.orientation.y = 0.0
+        self.obstacle_marker.pose.orientation.z = 0.0
+        self.obstacle_marker.pose.orientation.w = 1.0
+        self.obstacle_marker.scale.x = 2 * radius
+        self.obstacle_marker.scale.y = 2 * radius
+        self.obstacle_marker.scale.z = 2 * radius
+        self.obstacle_marker.color.a = color_rgba[3]
+        self.obstacle_marker.color.r = color_rgba[0]
+        self.obstacle_marker.color.g = color_rgba[1]
+        self.obstacle_marker.color.b = color_rgba[2]
+
+        self.marker_id += 1
+
+        self.obstacle_markers.markers.append(self.obstacle_marker)
+
+
+    def publish(self):
+
+        self.obstacle_pub.publish(self.obstacle_markers)
+
+
 
 
 print('XBot-RobotInterface not created.\n Using initial q default values.\n')
@@ -117,44 +170,26 @@ prb.createResidual('min_vel', 1e1 * utils.barrier1(-1 * vel_lims[7:] - model.v[7
 
 og = ObstacleGenerator()
 
-obs_origin = np.array([3, 0])
+obs_origin_1 = np.array([2, 0.1])
+obs_origin_2 = np.array([4, -0.5])
 obs_sigma = np.array([0.1, 0.1])
 obs_amplitude = 2
 
-obs_radius = 2
+obs_radius_1 = 0.5
+obs_radius_2 = 0.7
 
 base_pos_xy = kin_dyn.fk('base_link')(q=model.q)['ee_pos'][:2]
 # obs_1 = og.gaussObstacle()(base_pos_xy, obs_origin, obs_sigma, obs_amplitude)
-obs_1 = og.simpleObstacle()(base_pos_xy, obs_origin, obs_radius)
-
-pub = rospy.Publisher('sphere_marker', Marker, queue_size=10)
-
-sphere_marker = Marker()
-sphere_marker.header.frame_id = "world"  # Assuming the frame_id is 'base_link', change as necessary
-sphere_marker.header.stamp = rospy.Time.now()
-sphere_marker.ns = "sphere"
-sphere_marker.id = 0
-sphere_marker.type = Marker.SPHERE
-sphere_marker.action = Marker.ADD
-sphere_marker.pose.position.x = obs_origin[0]
-sphere_marker.pose.position.y = obs_origin[1]
-sphere_marker.pose.position.z = 0  # Adjust as necessary
-sphere_marker.pose.orientation.x = 0.0
-sphere_marker.pose.orientation.y = 0.0
-sphere_marker.pose.orientation.z = 0.0
-sphere_marker.pose.orientation.w = 1.0
-sphere_marker.scale.x = 2 * obs_radius
-sphere_marker.scale.y = 2 * obs_radius
-sphere_marker.scale.z = 2 * obs_radius
-sphere_marker.color.a = 1.0
-sphere_marker.color.r = 1.0
-sphere_marker.color.g = 0.0
-sphere_marker.color.b = 0.0
+obs_1 = og.simpleObstacle()(base_pos_xy, obs_origin_1, obs_radius_1)
+obs_2 = og.simpleObstacle()(base_pos_xy, obs_origin_2, obs_radius_2)
 
 
+obs_viz = obstacleViz()
+obs_viz.add_obstacle(obs_origin_1, obs_radius_2)
+obs_viz.add_obstacle(obs_origin_2, obs_radius_2)
 
-
-prb.createResidual('obs_1', 10 * utils.barrier(obs_1))
+prb.createResidual('obs_1', 1 * utils.barrier(obs_1) + utils.barrier(obs_2))
+# prb.createResidual('obs_2', 1 * utils.barrier(obs_2))
 
 final_base_xy = ti.getTask('final_base_xy')
 final_base_xy.setRef(np.array([[6., 0., 0, 0, 0, 0, 1]]).T)
@@ -196,7 +231,7 @@ while not rospy.is_shutdown():
     for qk in solution['q'].T:
 
         repl.publish_joints(qk)
-        pub.publish(sphere_marker)
+        obs_viz.publish()
 
         rate.sleep()
 

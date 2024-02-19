@@ -1,6 +1,6 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include <obstacles_generator.h>
+#include <obstacle.h>
 
 namespace py = pybind11;
 
@@ -28,14 +28,14 @@ auto make_deserialized(casadi::Function (T::* mem_fn)(Args... args))
     return deserialized;
 }
 
-PYBIND11_MODULE(pyObstacleGenerator, m) {
+PYBIND11_MODULE(pyObstacle, m) {
 
-    py::class_<ObstacleGenerator, ObstacleGenerator::Ptr>(m, "ObstacleGenerator")
+    py::class_<Obstacle, Obstacle::Ptr>(m, "Obstacle")
             .def(py::init<>())
             .def("gaussObstacle",
-                  make_deserialized(&ObstacleGenerator::gaussObstacle))
+                  make_deserialized(&Obstacle::gaussObstacle))
             .def("simpleObstacle",
-                  make_deserialized(&ObstacleGenerator::simpleObstacle))
+                  make_deserialized(&Obstacle::simpleObstacle))
 
             ;
 }

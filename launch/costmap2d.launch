@@ -15,6 +15,8 @@
         scan_time: 0.1 # REQUIRED to update correctly costmap2d
         range_min: 0.0 # REQUIRED to update correctly costmap2d
         range_max: 10.0 # REQUIRED to update correctly costmap2d
+
+        <!-- free_thresh -->
       </rosparam>
     </node>
 
