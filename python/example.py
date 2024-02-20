@@ -13,7 +13,7 @@ import numpy as np
 import subprocess
 import os
 from cartesian_interface.pyci_all import *
-from horizon_navigation.pyObstacleGenerator import ObstacleGenerator
+from horizon_navigation.pyObstacle import Obstacle
 from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import Point
 
@@ -168,7 +168,7 @@ prb.createResidual('min_vel', 1e1 * utils.barrier1(-1 * vel_lims[7:] - model.v[7
 
 # commands
 
-og = ObstacleGenerator()
+og = Obstacle()
 
 obs_origin_1 = np.array([2, 0.1])
 obs_origin_2 = np.array([4, -0.5])
@@ -203,10 +203,6 @@ ti.finalize()
 ti.bootstrap()
 ti.load_initial_guess()
 solution = ti.solution
-
-print(solution['q'])
-
-
 
 contact_list_repl = list(model.cmap.keys())
 

@@ -37,10 +37,10 @@ target_include_directories(${LIBRARY_TARGET_NAME}
     INTERFACE
     ${EIGEN3_INCLUDE_DIR})
 
-add_executable(main_node
-    src/main_node.cpp)
+add_executable(obstacle_generator_node
+    src/obstacle_generator_node.cpp)
 
-target_link_libraries(main_node
+target_link_libraries(obstacle_generator_node
     horizon_navigation
     ${catkin_LIBRARIES})
 
@@ -52,7 +52,7 @@ install(TARGETS  ${LIBRARY_TARGET_NAME}
         ARCHIVE  DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT lib
         RUNTIME  DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT bin)
 
-install(TARGETS main_node
+install(TARGETS obstacle_generator_node
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

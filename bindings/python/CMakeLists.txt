@@ -16,11 +16,28 @@ if(${pybind11_FOUND})
       OUTPUT_STRIP_TRAILING_WHITESPACE)
 
     include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+    pybind11_add_module(pyObstacle pyObstacle.cpp)
+    target_link_libraries(pyObstacle PUBLIC horizon_navigation)
+
+    install(TARGETS pyObstacle
+            DESTINATION ${PYTHON_SITE}/${PROJECT_NAME})
+
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR})
     pybind11_add_module(pyObstacleGenerator pyObstacleGenerator.cpp)
     target_link_libraries(pyObstacleGenerator PUBLIC horizon_navigation)
 
     install(TARGETS pyObstacleGenerator
             DESTINATION ${PYTHON_SITE}/${PROJECT_NAME})
+
+    install(FILES __init__.py DESTINATION ${PYTHON_SITE}/${PROJECT_NAME})
+
+
+#    include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+#    pybind11_add_module(pyObstacleGeneratorROS pyObstacleGeneratorROS.cpp)
+#    target_link_libraries(pyObstacleGeneratorROS PUBLIC horizon_navigation)
+
+#    install(TARGETS pyObstacleGeneratorROS
+#            DESTINATION ${PYTHON_SITE}/${PROJECT_NAME})
 
     install(FILES __init__.py DESTINATION ${PYTHON_SITE}/${PROJECT_NAME})
 #    include_directories(${CMAKE_CURRENT_SOURCE_DIR})

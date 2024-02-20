@@ -1,5 +1,5 @@
 <launch>
-    <node pkg="horizon_navigation" type="main_node" name="main_node" output="screen">
+    <node pkg="horizon_navigation" type="obstacle_generator_node" name="obstacle_generator_node" output="screen">
         <param name="rate" value="1000"/>
     </node>
 </launch>

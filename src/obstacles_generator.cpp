@@ -1,13 +1,15 @@
 #include <obstacles_generator.h>
 
-ObstacleGenerator::ObstacleGenerator(ros::NodeHandle nh, double rate, int grid_height, int grid_width, double grid_resolution):
-    _nh(nh),
+ObstacleGenerator::ObstacleGenerator(double rate, int grid_height, int grid_width, double grid_resolution):
     _rate(rate),
     _grid_height(grid_height),
     _grid_width(grid_width),
     _grid_resolution(grid_resolution),
-    _obstacle_counter(0)
+    _obstacle_counter(0),
+    _grid_origin(0, 0, 0)
 {
+
+    _nh = ros::NodeHandle("");
     _occupancy_matrix.resize(grid_height, grid_width);
 
     _init_publishers();
@@ -16,14 +18,20 @@ ObstacleGenerator::ObstacleGenerator(ros::NodeHandle nh, double rate, int grid_h
     _init_subscribers(occupancy_grid_topic_name);
 }
 
-bool ObstacleGenerator::addObstacle(Eigen::Vector3d origin, Eigen::Vector3d radius)
+bool ObstacleGenerator::addObstacle(Obstacle::Ptr obstacle)
 {
+    _obstacles.push_back(obstacle);
     return true;
+}
+
+void ObstacleGenerator::clearObstacles()
+{
+    _obstacles.clear();
 }
 
 void ObstacleGenerator::_init_subscribers(std::string topic_name)
 {
-    _occupancy_grid_subscriber = _nh.subscribe(topic_name, 10, &ObstacleGenerator::occupancyGridCallback, this);
+    _occupancy_grid_subscriber = _nh.subscribe(topic_name, 10, &ObstacleGenerator::_occupancy_grid_callback, this);
 }
 
 void ObstacleGenerator::_init_publishers()
@@ -70,17 +78,22 @@ void ObstacleGenerator::_obstacles_from_occupacy_grid()
         {
             if(_occupancy_matrix(elem_h, elem_w) > 0)
             {
-               double x = elem_h * _grid_resolution - (_grid_height * _grid_resolution) / 2;
-               double y = elem_w * _grid_resolution - (_grid_width * _grid_resolution) / 2;
-
-               std::cout << "found obstacle at: [" << x << ", " << y << "] " << std::endl;
+               // origin is at the center of the grid
+               double grid_origin_x = (_grid_height * _grid_resolution) / 2;
+               double grid_origin_y = (_grid_width * _grid_resolution) / 2;
+               // + _grid_resolution: apparently the grid is offsetted by ONE UNIT of _grid_resolution, both in x and y
+               double x = elem_h * _grid_resolution - grid_origin_x + _grid_resolution;
+               double y = elem_w * _grid_resolution - grid_origin_y + _grid_resolution;
 
                Eigen::Vector3d obstacle_origin;
                Eigen::Vector3d obstacle_radius;
+
                obstacle_origin << x, y, 0;
                obstacle_radius << _grid_resolution, _grid_resolution, _grid_resolution;
 
-               add_obstacle_viz(obstacle_origin, obstacle_radius);
+               auto cas_obs = std::make_shared<CasadiObstacle>(obstacle_origin, obstacle_radius);
+
+               addObstacle(cas_obs);
 
                _obstacle_counter += 1;
             }
@@ -89,12 +102,37 @@ void ObstacleGenerator::_obstacles_from_occupacy_grid()
 
 }
 
+std::vector<Obstacle::Ptr> ObstacleGenerator::getObstacles()
+{
+    return _obstacles;
+}
+
 void ObstacleGenerator::run()
 {
     // fill obstacles from sensors
+    // clear markers at every cycle
     _obstacle_markers.markers.clear(); // remove from here
+
+    clearObstacles();
+    // compute obstacles from occupancy grid coming from laserscan
     _obstacles_from_occupacy_grid();
-    std::cout << "number of obstacle founds: " << _obstacle_counter << std::endl;
+
+
+    std::sort(_obstacles.begin(), _obstacles.end(),
+              [this](auto a, auto b)
+    {
+        return _compare_distance(a, b);
+    });
+
+//     visualize obstacle
+    for (auto elem : _obstacles)
+    {
+        auto casadi_elem = dynamic_cast<CasadiObstacle::Ptr>(elem);
+        add_obstacle_viz(casadi_elem->getOrigin(), casadi_elem->getRadius());
+    }
+
+//    std::cout << "number of obstacles founds: " << _obstacle_counter << std::endl;
+//    std::cout << "number of obstacles in vector: " << _obstacles.size() << std::endl;
 
     // publish obstacles
     _obstacle_publisher.publish(_obstacle_markers);
@@ -111,7 +149,17 @@ std_msgs::ColorRGBA ObstacleGenerator::_get_default_color()
     return color;
 }
 
-void ObstacleGenerator::occupancyGridCallback(const nav_msgs::OccupancyGrid::ConstPtr& msg)
+bool ObstacleGenerator::_compare_distance(const Obstacle::Ptr a, const Obstacle::Ptr b)
+{
+
+    auto distance_a = (_grid_origin - a->getOrigin()).norm();
+    auto distance_b = (_grid_origin - b->getOrigin()).norm();
+
+    return distance_a < distance_b;
+
+}
+
+void ObstacleGenerator::_occupancy_grid_callback(const nav_msgs::OccupancyGrid::ConstPtr& msg)
 {
     // Extract grid data from the message
     int width = msg->info.width;

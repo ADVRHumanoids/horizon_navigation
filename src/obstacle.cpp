@@ -1,10 +1,13 @@
 #include <obstacle.h>
 
-Obstacle::Obstacle()
+CasadiObstacle::CasadiObstacle(Eigen::Vector3d origin, Eigen::Vector3d radius):
+    _origin(origin),
+    _radius(radius)
 {
+//    _distance =
 }
 
-casadi::Function Obstacle::gaussObstacle()
+casadi::Function CasadiObstacle::gaussFormulation()
 {
     casadi_int dim = 2;
     auto pos = casadi::SX::sym("pos", dim);
@@ -24,7 +27,7 @@ casadi::Function Obstacle::gaussObstacle()
 
 }
 
-casadi::Function Obstacle::simpleObstacle()
+casadi::Function CasadiObstacle::simpleFormulation()
 {
     casadi_int dim = 2;
     auto pos = casadi::SX::sym("pos", dim);
@@ -39,4 +42,17 @@ casadi::Function Obstacle::simpleObstacle()
 
 }
 
+Eigen::Vector3d CasadiObstacle::getOrigin()
+{
+    return _origin;
+}
 
+//double CasadiObstacle::getDistance()
+//{
+//    return _distance;
+//}
+
+Eigen::Vector3d CasadiObstacle::getRadius()
+{
+    return _radius;
+}
