@@ -5,12 +5,14 @@ ObstacleGenerator::ObstacleGenerator(double rate, int grid_height, int grid_widt
     _grid_height(grid_height),
     _grid_width(grid_width),
     _grid_resolution(grid_resolution),
-    _obstacle_counter(0),
+//    _obstacle_counter(0),
     _grid_origin(0, 0, 0)
 {
 
     _nh = ros::NodeHandle("");
     _occupancy_matrix.resize(grid_height, grid_width);
+    _occupancy_matrix.setZero();
+
 
     _init_publishers();
 
@@ -20,7 +22,7 @@ ObstacleGenerator::ObstacleGenerator(double rate, int grid_height, int grid_widt
 
 bool ObstacleGenerator::addObstacle(Obstacle::Ptr obstacle)
 {
-    _obstacles.push_back(obstacle);
+    _obstacles.push_back(std::move(obstacle));
     return true;
 }
 
@@ -39,13 +41,13 @@ void ObstacleGenerator::_init_publishers()
     _obstacle_publisher = _nh.advertise<visualization_msgs::MarkerArray>("obstacles", 10);
 }
 
-void ObstacleGenerator::add_obstacle_viz(Eigen::Vector3d origin, Eigen::Vector3d radius) //std_msgs::ColorRGBA color = _get_default_color()
+void ObstacleGenerator::add_obstacle_viz(int id, Eigen::Vector3d origin, Eigen::Vector3d radius, std_msgs::ColorRGBA color = _get_default_color()) //std_msgs::ColorRGBA color = _get_default_color()
 {
     auto obstacle_marker = visualization_msgs::Marker();
     obstacle_marker.header.frame_id = "base_link";
     obstacle_marker.header.stamp = ros::Time::now();
     obstacle_marker.ns = "sphere";
-    obstacle_marker.id = _obstacle_counter;
+    obstacle_marker.id = id;
     obstacle_marker.type = visualization_msgs::Marker::SPHERE;
     obstacle_marker.action = visualization_msgs::Marker::ADD;
     obstacle_marker.pose.position.x = origin[0];
@@ -58,10 +60,10 @@ void ObstacleGenerator::add_obstacle_viz(Eigen::Vector3d origin, Eigen::Vector3d
     obstacle_marker.scale.x = 2 * radius[0];
     obstacle_marker.scale.y = 2 * radius[1];
     obstacle_marker.scale.z = 2 * radius[2];
-    obstacle_marker.color.a = 1.; //color.a;
-    obstacle_marker.color.r = 1.; //color.r;
-    obstacle_marker.color.g = 1.; //color.g;
-    obstacle_marker.color.b = 0.; //color.b;
+    obstacle_marker.color.a = color.a; //color.a;
+    obstacle_marker.color.r = color.r; //color.r;
+    obstacle_marker.color.g = color.g; //color.g;
+    obstacle_marker.color.b = color.b; //color.b;
 //    obstacle_marker.lifetime = ros::Duration(1/_rate);
     _obstacle_markers.markers.push_back(obstacle_marker);
 
@@ -70,7 +72,7 @@ void ObstacleGenerator::add_obstacle_viz(Eigen::Vector3d origin, Eigen::Vector3d
 void ObstacleGenerator::_obstacles_from_occupacy_grid()
 {
     // Iterating over the matrix
-    _obstacle_counter = 0;
+//    _obstacle_counter = 0;
 
     for (int elem_w = 0; elem_w < _grid_width; ++elem_w)
     {
@@ -91,11 +93,8 @@ void ObstacleGenerator::_obstacles_from_occupacy_grid()
                obstacle_origin << x, y, 0;
                obstacle_radius << _grid_resolution, _grid_resolution, _grid_resolution;
 
-               auto cas_obs = std::make_shared<CasadiObstacle>(obstacle_origin, obstacle_radius);
-
+               auto cas_obs = std::make_shared<SphereObstacle>(obstacle_origin, obstacle_radius);
                addObstacle(cas_obs);
-
-               _obstacle_counter += 1;
             }
         }
     }
@@ -117,7 +116,7 @@ void ObstacleGenerator::run()
     // compute obstacles from occupancy grid coming from laserscan
     _obstacles_from_occupacy_grid();
 
-
+    // sort the vector of obstacle from closest to farther
     std::sort(_obstacles.begin(), _obstacles.end(),
               [this](auto a, auto b)
     {
@@ -125,13 +124,34 @@ void ObstacleGenerator::run()
     });
 
 //     visualize obstacle
+    auto id_obs = 0;
+    std_msgs::ColorRGBA color_marker;
     for (auto elem : _obstacles)
     {
-        auto casadi_elem = dynamic_cast<CasadiObstacle::Ptr>(elem);
-        add_obstacle_viz(casadi_elem->getOrigin(), casadi_elem->getRadius());
+
+        if (auto obs = std::dynamic_pointer_cast<SphereObstacle>(elem))
+        {
+            if (id_obs < 50)
+            {
+                color_marker.r = 0.0;
+                color_marker.g = 1.0;
+                color_marker.b = 0.0; // Yellow
+                color_marker.a = 1.0;
+
+            }
+            else
+            {
+                color_marker.r = 1.0;
+                color_marker.g = 1.0;
+                color_marker.b = 0.0;
+                color_marker.a = 1.0;
+            }
+                add_obstacle_viz(id_obs, obs->getOrigin(), obs->getRadius(), color_marker);
+                id_obs++;
+        }
     }
 
-//    std::cout << "number of obstacles founds: " << _obstacle_counter << std::endl;
+    std::cout << "number of obstacles founds: " << id_obs << std::endl;
 //    std::cout << "number of obstacles in vector: " << _obstacles.size() << std::endl;
 
     // publish obstacles
@@ -161,6 +181,7 @@ bool ObstacleGenerator::_compare_distance(const Obstacle::Ptr a, const Obstacle:
 
 void ObstacleGenerator::_occupancy_grid_callback(const nav_msgs::OccupancyGrid::ConstPtr& msg)
 {
+
     // Extract grid data from the message
     int width = msg->info.width;
     int height = msg->info.height;
