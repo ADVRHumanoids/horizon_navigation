@@ -26,7 +26,7 @@ footprint: [[-0.6, -0.37], [-0.6, 0.37], [0.6, 0.37], [0.6, -0.37]]
 
 track_unknown_space: true
 always_send_full_costmap: true
-inflation_radius: 0.02
+inflation_radius: 0.0
 
 observation_sources:  VLP16_lidar_back VLP16_lidar_front
 
