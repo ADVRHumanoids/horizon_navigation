@@ -34,7 +34,7 @@ public:
     void clearObstacles();
     void run();
 
-    void add_obstacle_viz(Eigen::Vector3d origin, Eigen::Vector3d radius); //std_msgs::ColorRGBA color;
+    void add_obstacle_viz(int id, Eigen::Vector3d origin, Eigen::Vector3d radius, std_msgs::ColorRGBA color);
     void _obstacles_from_occupacy_grid();
 
     std::vector<Obstacle::Ptr> getObstacles();
@@ -57,7 +57,7 @@ private:
     double _grid_resolution;
     Eigen::Vector3d _grid_origin;
 
-    int _obstacle_counter;
+//    int _obstacle_counter;
     std::vector<Obstacle::Ptr> _obstacles;
 
     ros::NodeHandle _nh;
