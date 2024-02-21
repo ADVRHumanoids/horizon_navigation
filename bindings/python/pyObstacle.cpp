@@ -1,4 +1,5 @@
 #include <pybind11/pybind11.h>
+#include <pybind11/eigen.h>
 #include <pybind11/stl.h>
 #include <obstacle.h>
 
@@ -30,13 +31,22 @@ auto make_deserialized(casadi::Function (T::* mem_fn)(Args... args))
 
 PYBIND11_MODULE(pyObstacle, m) {
 
-    py::class_<CasadiObstacle, CasadiObstacle::Ptr>(m, "CasadiObstacle")
+//    py::class_<Obstacle, Obstacle::Ptr>(m, "Obstacle")
+//            .def(py::init<>())
+//            .def("getOrigin", &Obstacle::getOrigin)
+//            ;
+
+    py::class_<SphereObstacle, SphereObstacle::Ptr>(m, "SphereObstacle")
             .def(py::init<Eigen::Vector3d, Eigen::Vector3d>())
+            .def("getOrigin", &SphereObstacle::getOrigin)
+            .def("getRadius", &SphereObstacle::getRadius)
+            ;
+
+    py::class_<CasadiObstacle, CasadiObstacle::Ptr>(m, "CasadiObstacle")
+            .def(py::init<>())
             .def("gaussFormulation",
                   make_deserialized(&CasadiObstacle::gaussFormulation))
             .def("simpleFormulation",
                   make_deserialized(&CasadiObstacle::simpleFormulation))
-            .def("getOrigin", &CasadiObstacle::getOrigin)
-            .def("getRadius", &CasadiObstacle::getRadius)
             ;
 }
