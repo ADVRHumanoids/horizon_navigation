@@ -8,9 +8,7 @@ Panels:
         - /Status1
         - /RobotModel1
         - /LaserScan1
-        - /LaserScan1/Status1
         - /LaserScan2
-        - /LaserScan2/Status1
       Splitter Ratio: 0.5
     Tree Height: 746
   - Class: rviz/Selection
@@ -469,6 +467,14 @@ Visualization Manager:
       Topic: /costmap_node/costmap/footprint
       Unreliable: false
       Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /obstacles
+      Name: MarkerArray
+      Namespaces:
+        sphere: true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -497,7 +503,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 7.835887908935547
+      Distance: 5.339938163757324
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -505,17 +511,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.9396703839302063
-        Y: 0.18914750218391418
-        Z: 0.10348434746265411
+        X: 1.8530789613723755
+        Y: 0.04983046278357506
+        Z: 0.4405007064342499
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.6703985929489136
+      Pitch: 0.890398383140564
       Target Frame: <Fixed Frame>
-      Yaw: 4.7135796546936035
+      Yaw: 4.653588771820068
     Saved: ~
 Window Geometry:
   Displays:
