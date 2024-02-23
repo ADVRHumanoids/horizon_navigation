@@ -5,6 +5,7 @@
 // #include <numeric>
 // #include <vector>
 // #include <iostream>
+#include <yaml-cpp/yaml.h>
 #include <memory>
 #include <ros/ros.h>
 #include <nav_msgs/OccupancyGrid.h>
@@ -39,11 +40,15 @@ public:
 
     std::vector<Obstacle::Ptr> getObstacles();
 
+    bool setObstacleRadius(double radius);
+    bool setMaxObstacleNum(int max_obstacle_num);
+
 private:
 
     void _occupancy_grid_callback(const nav_msgs::OccupancyGrid::ConstPtr& msg);
     void _init_subscribers(std::string topic_name);
     void _init_publishers();
+    void _init_load_config();
 
     static std_msgs::ColorRGBA _get_default_color();
 
@@ -57,10 +62,15 @@ private:
     double _grid_resolution;
     Eigen::Vector3d _grid_origin;
 
+    int _max_obstacle_num;
+    double _radius_obstacle;
+
+    YAML::Node _config;
+
 //    int _obstacle_counter;
     std::vector<Obstacle::Ptr> _obstacles;
 
-    ros::NodeHandle _nh;
+    ros::NodeHandle _nh, _nhpr;
     double _rate;
 
     ros::Subscriber _occupancy_grid_subscriber;

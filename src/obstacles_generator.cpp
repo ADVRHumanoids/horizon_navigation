@@ -5,19 +5,59 @@ ObstacleGenerator::ObstacleGenerator(double rate, int grid_height, int grid_widt
     _grid_height(grid_height),
     _grid_width(grid_width),
     _grid_resolution(grid_resolution),
-//    _obstacle_counter(0),
     _grid_origin(0, 0, 0)
 {
 
     _nh = ros::NodeHandle("");
+    _nhpr = ros::NodeHandle("~");
+
     _occupancy_matrix.resize(grid_height, grid_width);
     _occupancy_matrix.setZero();
+
+    _max_obstacle_num = 10;
+    _radius_obstacle = grid_resolution;
 
 
     _init_publishers();
 
     std::string occupancy_grid_topic_name = "/costmap_node/costmap/costmap";
     _init_subscribers(occupancy_grid_topic_name);
+
+    _init_load_config();
+}
+
+void ObstacleGenerator::_init_load_config()
+{
+    if(!_nhpr.hasParam("config"))
+    {
+        std::cout << "Missing 'config' ros parameter for obstacle_generator node, using default \n" <<  std::endl;
+    }
+    else
+    {
+        std::string config_string;
+        _nhpr.getParam("config", config_string);
+        _config = YAML::Load(config_string);
+
+        if (!_config["max_obstacle_num"])
+        {
+            std::cout << "Missing 'max_obstacle_num' for rviz, using default (" << _max_obstacle_num << ") \n" << std::endl;
+        }
+        else
+        {
+            std::cout << "Setting 'max_obstacle_num' for rviz to " << _config["max_obstacle_num"] << "\n" << std::endl;
+            _max_obstacle_num = _config["max_obstacle_num"].as<int>();
+        }
+
+        if (!_config["radius_obstacle"])
+        {
+            std::cout << "Missing 'radius_obstacle', using default (" << _radius_obstacle << ") \n" << std::endl;
+        }
+        else
+        {
+            std::cout << "Setting 'radius_obstacle' to " << _config["radius_obstacle"] << "\n" << std::endl;
+            _radius_obstacle = _config["radius_obstacle"].as<int>();
+        }
+    }
 }
 
 bool ObstacleGenerator::addObstacle(Obstacle::Ptr obstacle)
@@ -91,7 +131,7 @@ void ObstacleGenerator::_obstacles_from_occupacy_grid()
                Eigen::Vector3d obstacle_radius;
 
                obstacle_origin << x, y, 0;
-               obstacle_radius << _grid_resolution, _grid_resolution, _grid_resolution;
+               obstacle_radius << _radius_obstacle, _radius_obstacle, _radius_obstacle;
 
                auto cas_obs = std::make_shared<SphereObstacle>(obstacle_origin, obstacle_radius);
                addObstacle(cas_obs);
@@ -104,6 +144,20 @@ void ObstacleGenerator::_obstacles_from_occupacy_grid()
 std::vector<Obstacle::Ptr> ObstacleGenerator::getObstacles()
 {
     return _obstacles;
+}
+
+bool ObstacleGenerator::setObstacleRadius(double radius)
+{
+    _radius_obstacle = radius;
+    std::cout << "setting radius to: " << _radius_obstacle << std::endl;
+    return true;
+}
+
+bool ObstacleGenerator::setMaxObstacleNum(int max_obstacle_num)
+{
+    _max_obstacle_num = max_obstacle_num;
+    std::cout << "setting max num obstacles to: " << _max_obstacle_num << std::endl;
+    return true;
 }
 
 void ObstacleGenerator::run()
@@ -131,7 +185,7 @@ void ObstacleGenerator::run()
 
         if (auto obs = std::dynamic_pointer_cast<SphereObstacle>(elem))
         {
-            if (id_obs < 100)
+            if (id_obs < _max_obstacle_num)
             {
                 color_marker.r = 0.0;
                 color_marker.g = 1.0;

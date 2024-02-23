@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 find_package(Eigen3 3.3 REQUIRED)
 find_package(casadi 3.5.5 REQUIRED)
+find_package(yaml-cpp REQUIRED)
 
 find_package(catkin REQUIRED COMPONENTS
              roscpp
@@ -31,7 +32,8 @@ add_library(${LIBRARY_TARGET_NAME} SHARED
 target_link_libraries(${LIBRARY_TARGET_NAME}
     PUBLIC
     ${catkin_LIBRARIES}
-    casadi)
+    casadi
+    yaml-cpp)
 
 target_include_directories(${LIBRARY_TARGET_NAME}
     INTERFACE
