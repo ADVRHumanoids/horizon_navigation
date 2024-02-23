@@ -1,8 +1,8 @@
 # basic params
 global_frame: base_link
 robot_base_frame: base_link
-update_frequency: 5.0
-publish_frequency: 5.0
+update_frequency: 30.0
+publish_frequency: 30.0
 
 # use_sim_time: true
 # cost_scaling_factor: 0.2

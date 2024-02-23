@@ -16,6 +16,4 @@ while True:
     obs_gen.run()
     obs_vec = obs_gen.getObstacles()
 
-    print(obs_vec)
-
     rate.sleep()
