@@ -12,7 +12,7 @@ static_map: false
 rolling_window: true
 width: 6.0
 height: 6.0
-resolution: 0.1
+resolution: 0.01
 # map_type: costmap
 
 # obstacles
@@ -28,13 +28,13 @@ track_unknown_space: true
 always_send_full_costmap: true
 inflation_radius: 0.0
 
-observation_sources:  VLP16_lidar_back VLP16_lidar_front
+observation_sources:  VLP16_lidar_back_base_link VLP16_lidar_front_base_link
 
-VLP16_lidar_front:
-  sensor_frame: VLP16_lidar_front
-  topic: /VLP16_lidar_front/scan
+VLP16_lidar_front_base_link:
+  sensor_frame: VLP16_lidar_front_base_link
+  topic: /VLP16_lidar_front/pointcloud_to_scan
   max_obstacle_height: 10.0
-  min_obstacle_height: 0.0
+  min_obstacle_height: -0.5
   obstacle_max_range: 6.0
   obstacle_min_range: 0.0
   raytrace_max_range: 6.0
@@ -46,11 +46,11 @@ VLP16_lidar_front:
   inf_is_valid: true # required for COSTMAP corret update
   data_type: LaserScan
 
-VLP16_lidar_back:
-  sensor_frame: VLP16_lidar_back
-  topic: /VLP16_lidar_back/scan
+VLP16_lidar_back_base_link:
+  sensor_frame: VLP16_lidar_back_base_link
+  topic: /VLP16_lidar_back/pointcloud_to_scan
   max_obstacle_height: 10.0
-  min_obstacle_height: 0.0
+  min_obstacle_height: -0.5
   obstacle_max_range: 6.0
   obstacle_min_range: 0.0
   raytrace_max_range: 6.0
