@@ -131,7 +131,7 @@ void ObstacleGenerator::run()
 
         if (auto obs = std::dynamic_pointer_cast<SphereObstacle>(elem))
         {
-            if (id_obs < 50)
+            if (id_obs < 100)
             {
                 color_marker.r = 0.0;
                 color_marker.g = 1.0;
