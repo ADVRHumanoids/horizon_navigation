@@ -42,6 +42,7 @@ public:
 
     bool setObstacleRadius(double radius);
     bool setMaxObstacleNum(int max_obstacle_num);
+    void setBlindAngle(double min_angle, double max_angle);
 
 private:
 
@@ -50,10 +51,14 @@ private:
     void _init_publishers();
     void _init_load_config();
 
+//    void _filter_angle();
+
     static std_msgs::ColorRGBA _get_default_color();
 
-    bool _compare_distance(const Obstacle::Ptr a, const Obstacle::Ptr b);
-
+    bool _min_distance(const Obstacle::Ptr a, const Obstacle::Ptr b);
+    bool _max_distance(const Obstacle::Ptr a, const Obstacle::Ptr b);
+    double _compute_distance(const Obstacle::Ptr obs);
+    std::vector<Obstacle::Ptr> _sort_angle_distance();
 
 
     OccupancyMatrix _occupancy_matrix;
@@ -62,8 +67,12 @@ private:
     double _grid_resolution;
     Eigen::Vector3d _grid_origin;
 
+
     int _max_obstacle_num;
     double _radius_obstacle;
+    double _angle_threshold;
+
+    double _min_angle, _max_angle;
 
     YAML::Node _config;
 

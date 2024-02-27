@@ -4,7 +4,7 @@
       <remap from="cloud_in" to="/VLP16_lidar_front/velodyne_points" />
       <remap from="scan" to="/VLP16_lidar_front/pointcloud_to_scan" />
       <rosparam>
-        target_frame: base_link
+        target_frame: VLP16_lidar_front_base_link # base_link
         transform_tolerance: 0.01
         min_height: -0.5 # scanning also obstacle below base_link
         max_height: 10.0
@@ -13,7 +13,7 @@
         angle_max: 3.14 # REQUIRED to update correctly costmap2d
         angle_increment: 0.001 # REQUIRED to update correctly costmap2d
         scan_time: 0.1 # REQUIRED to update correctly costmap2d
-        range_min: 1.0 # REQUIRED to update correctly costmap2d
+        range_min: 0.1 # 1.0 # REQUIRED to update correctly costmap2d # lidar allegedly minimum distance
         range_max: 10.0 # REQUIRED to update correctly costmap2d
 
         <!-- free_thresh -->
@@ -24,7 +24,7 @@
       <remap from="cloud_in" to="/VLP16_lidar_back/velodyne_points" />
       <remap from="scan" to="/VLP16_lidar_back/pointcloud_to_scan" />
       <rosparam>
-        target_frame: base_link
+        target_frame: VLP16_lidar_back_base_link # base_link
         transform_tolerance: 0.01
         min_height: -0.5 # scanning also obstacle below base_link
         max_height: 10.0
@@ -33,7 +33,7 @@
         angle_max: 3.14 # 6.28 # REQUIRED to update correctly costmap2d
         angle_increment: 0.001 # REQUIRED to update correctly costmap2d
         scan_time: 0.1 # REQUIRED to update correctly costmap2d
-        range_min: 1.0 # REQUIRED to update correctly costmap2d
+        range_min: 0.1 # 1.0 # REQUIRED to update correctly costmap2d # lidar allegedly minimum distance
         range_max: 10.0 # REQUIRED to update correctly costmap2d
       </rosparam>
     </node>

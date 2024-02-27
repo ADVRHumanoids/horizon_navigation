@@ -5,7 +5,10 @@ ObstacleGenerator::ObstacleGenerator(double rate, int grid_height, int grid_widt
     _grid_height(grid_height),
     _grid_width(grid_width),
     _grid_resolution(grid_resolution),
-    _grid_origin(0, 0, 0)
+    _grid_origin(0, 0, 0),
+    _angle_threshold(grid_resolution),
+    _min_angle(0.0),
+    _max_angle(0.0)
 {
 
     _nh = ros::NodeHandle("");
@@ -14,9 +17,10 @@ ObstacleGenerator::ObstacleGenerator(double rate, int grid_height, int grid_widt
     _occupancy_matrix.resize(grid_height, grid_width);
     _occupancy_matrix.setZero();
 
-    _max_obstacle_num = 10;
+    _max_obstacle_num = 2 * M_PI / _angle_threshold; // technically, it's the circle divided by the angle treshold
     _radius_obstacle = grid_resolution;
 
+//    std::vector<Obstacle> _grid_slices(2 * M_PI / _angle_threshold);
 
     _init_publishers();
 
@@ -133,8 +137,11 @@ void ObstacleGenerator::_obstacles_from_occupacy_grid()
                obstacle_origin << x, y, 0;
                obstacle_radius << _radius_obstacle, _radius_obstacle, _radius_obstacle;
 
-               auto cas_obs = std::make_shared<SphereObstacle>(obstacle_origin, obstacle_radius);
-               addObstacle(cas_obs);
+//               if (atan2(y, x) < _min_angle || (atan2(y, x) > _max_angle))
+//                {
+                auto obs = std::make_shared<SphereObstacle>(obstacle_origin, obstacle_radius);
+                addObstacle(obs);
+//                }
             }
         }
     }
@@ -160,6 +167,15 @@ bool ObstacleGenerator::setMaxObstacleNum(int max_obstacle_num)
     return true;
 }
 
+void ObstacleGenerator::setBlindAngle(double min_angle, double max_angle)
+{
+    _min_angle = fmod(min_angle, 2 * M_PI);
+    _max_angle = fmod(max_angle, 2 * M_PI);
+
+//    std::cout << "set min: "<< _min_angle << std::endl;
+//    std::cout << "set max: "<< _max_angle << std::endl;
+}
+
 void ObstacleGenerator::run()
 {
     // fill obstacles from sensors
@@ -170,12 +186,75 @@ void ObstacleGenerator::run()
     // compute obstacles from occupancy grid coming from laserscan
     _obstacles_from_occupacy_grid();
 
-    // sort the vector of obstacle from closest to farther
-    std::sort(_obstacles.begin(), _obstacles.end(),
-              [this](auto a, auto b)
+
+    // fake obstacles
+
+//    Eigen::Vector3d obstacle_origin(0, 0, 0);
+//    Eigen::Vector3d obstacle_radius(0.01, 0.01, 0.01);
+
+//    for (double angle=0.0; angle< 2 * M_PI;)
+//    {
+
+//        int num_obstacles_row = 3;
+//        if (angle == 0.0 || angle == 0.2)
+//        {
+//            num_obstacles_row = 50;
+//        }
+
+//        for (auto i=0; i<num_obstacles_row; i++)
+//        {
+
+
+//            Eigen::Vector3d origin(1.5 * cos(angle), 1.5 * sin(angle), 0);
+
+//            if (angle == 0.0 || angle == 0.2)
+//            {
+//                origin << 0.8 * cos(angle), 0.8 * sin(angle), 0;
+//            }
+
+//            obstacle_origin[0] = origin[0] + i * 0.03 * cos(angle);
+//            obstacle_origin[1] = origin[1] + i * 0.03 * sin(angle);
+//            auto obs = std::make_shared<SphereObstacle>(obstacle_origin, obstacle_radius);
+//            addObstacle(obs);
+//        }
+
+//        angle=angle+0.2;
+//    }
+
+    // Remove elements that meet the condition
+    auto condition = [this](Obstacle::Ptr obstacle)
     {
-        return _compare_distance(a, b);
-    });
+        double angle = obstacle->getAngle();
+
+//        if (angle < 0) {
+//            angle += 2 * M_PI; // Adjust negative angles to positive equivalents
+//        }
+
+//        std::cout << angle << std::endl;
+//        std::cout << _min_angle << std::endl;
+//        std::cout << _max_angle << std::endl;
+
+//        if (_min_angle > _max_angle)
+//        {
+//            return angle <= _min_angle && angle <= _max_angle;
+//        }
+
+        return angle >= _min_angle && angle <= _max_angle;
+    };
+
+
+    _obstacles.erase(std::remove_if(_obstacles.begin(), _obstacles.end(), condition), _obstacles.end());
+    // sort obstacles by angle: the closest for each obstacle with the same angle from the origin
+    _obstacles = _sort_angle_distance();
+
+    // sort obstacles by distance: the closest to the origin
+//    std::sort(_obstacles.begin(), _obstacles.end(),
+//              [this](auto a, auto b)
+//    {
+//        return _min_distance(a, b);
+//    });
+
+
 
 //     visualize obstacle
     auto id_obs = 0;
@@ -206,7 +285,6 @@ void ObstacleGenerator::run()
     }
 
     std::cout << "number of obstacles founds: " << id_obs << std::endl;
-//    std::cout << "number of obstacles in vector: " << _obstacles.size() << std::endl;
 
     // publish obstacles
     _obstacle_publisher.publish(_obstacle_markers);
@@ -223,13 +301,83 @@ std_msgs::ColorRGBA ObstacleGenerator::_get_default_color()
     return color;
 }
 
-bool ObstacleGenerator::_compare_distance(const Obstacle::Ptr a, const Obstacle::Ptr b)
+bool ObstacleGenerator::_max_distance(const Obstacle::Ptr a, const Obstacle::Ptr b)
 {
 
-    auto distance_a = (_grid_origin - a->getOrigin()).norm();
-    auto distance_b = (_grid_origin - b->getOrigin()).norm();
+    auto distance_a = _compute_distance(a);
+    auto distance_b = _compute_distance(b);
+
+    return distance_a > distance_b;
+
+}
+
+bool ObstacleGenerator::_min_distance(const Obstacle::Ptr a, const Obstacle::Ptr b)
+{
+
+    auto distance_a = _compute_distance(a);
+    auto distance_b = _compute_distance(b);
 
     return distance_a < distance_b;
+
+}
+
+double ObstacleGenerator::_compute_distance(const Obstacle::Ptr obs)
+{
+
+    auto distance = (_grid_origin - obs->getOrigin()).norm();
+
+    return distance;
+
+}
+
+std::vector<Obstacle::Ptr> ObstacleGenerator::_sort_angle_distance()
+{
+    std::unordered_map<int, std::vector<Obstacle::Ptr>> slices_obstacle;
+
+    // add element to vector in map depending on angle
+    for (const auto& obstacle : _obstacles)
+    {
+        int discretized_angle = static_cast<int>(obstacle->getAngle() / _angle_threshold);
+        slices_obstacle[discretized_angle].push_back(obstacle);
+    }
+
+    // sort all vector in map
+    for (auto& pair : slices_obstacle)
+    {
+        auto& obs_vec = pair.second;
+        // sort the vector of obstacle from closest to farther
+        std::sort(obs_vec.begin(), obs_vec.end(),
+                  [this](auto a, auto b)
+        {
+            return _max_distance(a, b);
+        });
+    }
+
+    // take only the first
+    std::vector<Obstacle::Ptr> sorted_obstacles;
+
+    int obstacle_i = 0;
+    bool all_empty = false;
+
+    while (!all_empty) //&& obstacle_i < _max_obstacle_num
+    {
+        all_empty = true;
+        for (auto& pair : slices_obstacle)
+        {
+            auto& obs_vec = pair.second;
+
+            if (!obs_vec.empty())
+            {
+                sorted_obstacles.push_back(obs_vec.back());
+                obs_vec.pop_back();
+                obstacle_i++;
+                all_empty = false;
+            }
+        }
+    }
+
+    return sorted_obstacles;
+
 
 }
 

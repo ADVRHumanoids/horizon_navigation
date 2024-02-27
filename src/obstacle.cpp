@@ -1,5 +1,27 @@
 #include <obstacle.h>
 
+SphereObstacle::SphereObstacle(Eigen::Vector3d origin, Eigen::Vector3d radius):
+    _origin(origin),
+    _radius(radius)
+{
+    _angle = atan2(_origin[1], _origin[0]);
+}
+
+Eigen::Vector3d SphereObstacle::getOrigin()
+{
+    return _origin;
+}
+
+Eigen::Vector3d SphereObstacle::getRadius()
+{
+    return _radius;
+}
+
+double SphereObstacle::getAngle()
+{
+    return _angle;
+}
+
 CasadiObstacle::CasadiObstacle()
 {
 }

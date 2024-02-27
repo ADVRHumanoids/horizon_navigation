@@ -18,23 +18,29 @@ int main(int argc, char** argv)
 
     std::cout << "running rate at " << rate << " Hz" << std::endl;
 
-    auto obs_gen = ObstacleGenerator(rate, 60, 60, 0.1);
+    auto obs_gen = ObstacleGenerator(rate, 600, 600, 0.01);
+//    obs_gen.setMaxObstacleNum(50);
+    obs_gen.setBlindAngle(-M_PI/4, M_PI/4);
 
-//    Eigen::Vector3d origin_1; origin_1 << 0, 0, 0;
-//    Eigen::Vector3d radius_1; radius_1 << 1, 1, 1;
+//    Eigen::Vector3d obstacle_origin(0, 0, 0);
+//    Eigen::Vector3d obstacle_radius(0.01, 0.01, 0.01);
 
-//    Eigen::Vector3d origin_2; origin_2 << 5, 0, 0;
-//    Eigen::Vector3d radius_2; radius_2 << 1, 1, 1;
-
-//    obs_gen.add_obstacle_viz(origin_1, radius_1);
-//    obs_gen.add_obstacle_viz(origin_2, radius_2);
-
+    int iteration = 0;
+    double radial_increase = 2 * M_PI / 10000;
     ros::Rate r(rate);
     while(ros::ok())
     {
+
+        double min_angle = -M_PI/4 + iteration * radial_increase;
+        double max_angle = M_PI/4 + iteration * radial_increase;
+
+//        obs_gen.setBlindAngle(min_angle, max_angle);
+
+
         obs_gen.run();
         ros::spinOnce();
         r.sleep();
+        iteration++;
     }
 
     return 0;

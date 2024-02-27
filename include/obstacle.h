@@ -19,6 +19,7 @@ class Obstacle
 
         typedef std::shared_ptr<Obstacle> Ptr;
         virtual Eigen::Vector3d getOrigin() = 0;
+        virtual double getAngle() = 0;
     //    virtual double getDistance() = 0;
 
 };
@@ -29,17 +30,17 @@ class SphereObstacle: public Obstacle
     public:
 
         typedef std::shared_ptr<SphereObstacle> Ptr;
-        SphereObstacle(Eigen::Vector3d origin, Eigen::Vector3d radius):
-            _origin(origin),
-            _radius(radius) {}
+        SphereObstacle(Eigen::Vector3d origin, Eigen::Vector3d radius);
 
-        Eigen::Vector3d getOrigin() override {return _origin; }
-        Eigen::Vector3d getRadius() {return _radius; }
+        Eigen::Vector3d getOrigin() override;
+        double getAngle() override;
+        Eigen::Vector3d getRadius();
 
     protected:
 
         Eigen::Vector3d _origin;
         Eigen::Vector3d _radius;
+        double _angle;
 
 };
 
