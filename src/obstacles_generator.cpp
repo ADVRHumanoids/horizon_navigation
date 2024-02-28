@@ -6,7 +6,7 @@ ObstacleGenerator::ObstacleGenerator(double rate, int grid_height, int grid_widt
     _grid_width(grid_width),
     _grid_resolution(grid_resolution),
     _grid_origin(0, 0, 0),
-    _angle_threshold(grid_resolution),
+    _angle_threshold(0.2),
     _min_angle(0.0),
     _max_angle(0.0)
 {
