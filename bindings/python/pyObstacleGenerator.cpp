@@ -13,5 +13,6 @@ PYBIND11_MODULE(pyObstacleGenerator, m) {
             .def("setMaxObstacleNum", &ObstacleGenerator::setMaxObstacleNum)
             .def("setObstacleRadius", &ObstacleGenerator::setObstacleRadius)
             .def("getObstacles", &ObstacleGenerator::getObstacles)
+            .def("setBlindAngle", &ObstacleGenerator::setBlindAngle)
             ;
 }
