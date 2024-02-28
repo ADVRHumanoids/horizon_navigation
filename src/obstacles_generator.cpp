@@ -242,7 +242,7 @@ void ObstacleGenerator::run()
         return angle >= _min_angle && angle <= _max_angle;
     };
 
-
+    // remove obstacles in blind angle
     _obstacles.erase(std::remove_if(_obstacles.begin(), _obstacles.end(), condition), _obstacles.end());
     // sort obstacles by angle: the closest for each obstacle with the same angle from the origin
     _obstacles = _sort_angle_distance();
@@ -256,7 +256,7 @@ void ObstacleGenerator::run()
 
 
 
-//     visualize obstacle
+//  visualize obstacle
     auto id_obs = 0;
     std_msgs::ColorRGBA color_marker;
     for (auto elem : _obstacles)
@@ -284,7 +284,7 @@ void ObstacleGenerator::run()
         }
     }
 
-    std::cout << "number of obstacles founds: " << id_obs << std::endl;
+//    std::cout << "number of obstacles founds: " << id_obs << std::endl;
 
     // publish obstacles
     _obstacle_publisher.publish(_obstacle_markers);
