@@ -28,7 +28,7 @@ public:
     typedef Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> OccupancyMatrix;
 
 
-    ObstacleGenerator(double rate, int grid_height, int grid_width, double grid_resolution);
+    ObstacleGenerator(int grid_height, int grid_width, double grid_resolution);
     typedef std::shared_ptr<ObstacleGenerator> Ptr;
 
     bool addObstacle(Obstacle::Ptr obstacle);
@@ -42,7 +42,14 @@ public:
 
     bool setObstacleRadius(double radius);
     bool setMaxObstacleNum(int max_obstacle_num);
+    bool setAngleThreshold(double angle);
     void setBlindAngle(double min_angle, double max_angle);
+
+    double getObstacleRadius();
+    int getMaxObstacleNum();
+    double getAngleThreshold();
+
+    void _update(); // should be private
 
 private:
 
@@ -59,11 +66,14 @@ private:
     bool _max_distance(const Obstacle::Ptr a, const Obstacle::Ptr b);
     double _compute_distance(const Obstacle::Ptr obs);
     std::vector<Obstacle::Ptr> _sort_angle_distance();
+    void _set_blindsight();
+    void _visualize_obstacles_viz();
+
 
 
     OccupancyMatrix _occupancy_matrix;
-    int _grid_height;
-    int _grid_width;
+    int _grid_height_cells;
+    int _grid_width_cells;
     double _grid_resolution;
     Eigen::Vector3d _grid_origin;
 
@@ -80,8 +90,6 @@ private:
     std::vector<Obstacle::Ptr> _obstacles;
 
     ros::NodeHandle _nh, _nhpr;
-    double _rate;
-
     ros::Subscriber _occupancy_grid_subscriber;
     ros::Publisher _obstacle_publisher;
 

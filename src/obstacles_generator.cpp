@@ -1,24 +1,23 @@
 #include <obstacles_generator.h>
 
-ObstacleGenerator::ObstacleGenerator(double rate, int grid_height, int grid_width, double grid_resolution):
-    _rate(rate),
-    _grid_height(grid_height),
-    _grid_width(grid_width),
+ObstacleGenerator::ObstacleGenerator(int grid_height, int grid_width, double grid_resolution):
     _grid_resolution(grid_resolution),
     _grid_origin(0, 0, 0),
-    _angle_threshold(0.2),
     _min_angle(0.0),
     _max_angle(0.0)
 {
-
     _nh = ros::NodeHandle("");
     _nhpr = ros::NodeHandle("~");
 
     _occupancy_matrix.resize(grid_height, grid_width);
     _occupancy_matrix.setZero();
 
+    _grid_height_cells = grid_height;//  static_cast<int>(grid_height / _grid_resolution); // from meters to grid units
+    _grid_width_cells = grid_width; //static_cast<int>(grid_width / _grid_resolution); // from meters to grid units
+
+    _radius_obstacle = _grid_resolution;
+    _angle_threshold = _radius_obstacle;
     _max_obstacle_num = 2 * M_PI / _angle_threshold; // technically, it's the circle divided by the angle treshold
-    _radius_obstacle = grid_resolution;
 
 //    std::vector<Obstacle> _grid_slices(2 * M_PI / _angle_threshold);
 
@@ -72,7 +71,35 @@ bool ObstacleGenerator::addObstacle(Obstacle::Ptr obstacle)
 
 void ObstacleGenerator::clearObstacles()
 {
+    _obstacle_markers.markers.clear(); // remove from here
     _obstacles.clear();
+}
+
+void ObstacleGenerator::_set_blindsight()
+{
+    // Remove elements that meet the condition
+    auto condition = [this](Obstacle::Ptr obstacle)
+    {
+        double angle = obstacle->getAngle();
+
+//        if (angle < 0) {
+//            angle += 2 * M_PI; // Adjust negative angles to positive equivalents
+//        }
+
+//        std::cout << angle << std::endl;
+//        std::cout << _min_angle << std::endl;
+//        std::cout << _max_angle << std::endl;
+
+//        if (_min_angle > _max_angle)
+//        {
+//            return angle <= _min_angle && angle <= _max_angle;
+//        }
+
+        return angle >= _min_angle && angle <= _max_angle;
+    };
+
+    // remove obstacles in blind angle
+    _obstacles.erase(std::remove_if(_obstacles.begin(), _obstacles.end(), condition), _obstacles.end());
 }
 
 void ObstacleGenerator::_init_subscribers(std::string topic_name)
@@ -104,12 +131,84 @@ void ObstacleGenerator::add_obstacle_viz(int id, Eigen::Vector3d origin, Eigen::
     obstacle_marker.scale.x = 2 * radius[0];
     obstacle_marker.scale.y = 2 * radius[1];
     obstacle_marker.scale.z = 2 * radius[2];
-    obstacle_marker.color.a = color.a; //color.a;
-    obstacle_marker.color.r = color.r; //color.r;
-    obstacle_marker.color.g = color.g; //color.g;
-    obstacle_marker.color.b = color.b; //color.b;
-//    obstacle_marker.lifetime = ros::Duration(1/_rate);
+    obstacle_marker.color.a = color.a;
+    obstacle_marker.color.r = color.r;
+    obstacle_marker.color.g = color.g;
+    obstacle_marker.color.b = color.b;
     _obstacle_markers.markers.push_back(obstacle_marker);
+
+}
+
+void ObstacleGenerator::_visualize_obstacles_viz()
+{
+    //  visualize obstacle
+        auto id_obs = 0;
+        std_msgs::ColorRGBA color_marker;
+        for (auto elem : _obstacles)
+        {
+
+            if (auto obs = std::dynamic_pointer_cast<SphereObstacle>(elem))
+            {
+                if (id_obs < _max_obstacle_num)
+                {
+                    // Green
+                    color_marker.r = 0.0;
+                    color_marker.g = 1.0;
+                    color_marker.b = 0.0;
+                    color_marker.a = 1.0;
+
+                }
+                else
+                {
+                    // Yellow
+                    color_marker.r = 1.0;
+                    color_marker.g = 1.0;
+                    color_marker.b = 0.0;
+                    color_marker.a = 0.1;
+                }
+
+//                auto discretized_angle = static_cast<int>(obs->getAngle() / _angle_threshold);
+//                auto normalized_angle = static_cast<double>(discretized_angle + 15) / 30;
+//                color_marker.r = std::max(0.0, 1.0 - normalized_angle); // Red component
+//                color_marker.g = 1.0 - std::abs(normalized_angle - 0.5) * 2; // Green component
+//                color_marker.b = std::max(0.0, normalized_angle - 0.5) * 2; // Blue component
+//                color_marker.a = 1.0;
+
+//                std::cout << "addin obstacle [" << discretized_angle << "] with colors: " << std::endl;
+//                std::cout << color_marker.r << std::endl;
+//                std::cout << color_marker.g << std::endl;
+//                std::cout << color_marker.b << std::endl;
+
+                add_obstacle_viz(id_obs, obs->getOrigin(), obs->getRadius(), color_marker);
+                id_obs++;
+            }
+        }
+
+    //    std::cout << "number of obstacles founds: " << id_obs << std::endl;
+
+        // publish obstacles
+        _obstacle_publisher.publish(_obstacle_markers);
+}
+
+void ObstacleGenerator::_update()
+{
+    // compute obstacles from occupancy grid coming from laserscan
+    _obstacles_from_occupacy_grid();
+
+    // remove blind spot given by setBlindAngle
+    _set_blindsight();
+
+    // sort obstacles by angle: the closest for each obstacle with the same angle from the origin
+    _obstacles = _sort_angle_distance();
+
+    // sort obstacles by distance: the closest to the origin
+//    std::sort(_obstacles.begin(), _obstacles.end(),
+//              [this](auto a, auto b)
+//    {
+//        return _min_distance(a, b);
+//    });
+
+    _visualize_obstacles_viz();
 
 }
 
@@ -118,15 +217,15 @@ void ObstacleGenerator::_obstacles_from_occupacy_grid()
     // Iterating over the matrix
 //    _obstacle_counter = 0;
 
-    for (int elem_w = 0; elem_w < _grid_width; ++elem_w)
+    for (int elem_w = 0; elem_w < _grid_width_cells; ++elem_w)
     {
-        for (int elem_h = 0; elem_h < _grid_height; ++elem_h)
+        for (int elem_h = 0; elem_h < _grid_height_cells; ++elem_h)
         {
             if(_occupancy_matrix(elem_h, elem_w) > 0)
             {
                // origin is at the center of the grid
-               double grid_origin_x = (_grid_height * _grid_resolution) / 2;
-               double grid_origin_y = (_grid_width * _grid_resolution) / 2;
+               double grid_origin_x = (_grid_height_cells * _grid_resolution) / 2;
+               double grid_origin_y = (_grid_width_cells * _grid_resolution) / 2;
                // + _grid_resolution: apparently the grid is offsetted by ONE UNIT of _grid_resolution, both in x and y
                double x = elem_h * _grid_resolution - grid_origin_x + _grid_resolution;
                double y = elem_w * _grid_resolution - grid_origin_y + _grid_resolution;
@@ -156,15 +255,25 @@ std::vector<Obstacle::Ptr> ObstacleGenerator::getObstacles()
 bool ObstacleGenerator::setObstacleRadius(double radius)
 {
     _radius_obstacle = radius;
-    std::cout << "setting radius to: " << _radius_obstacle << std::endl;
+    std::cout << "Setting radius to: " << _radius_obstacle << std::endl;
     return true;
 }
 
 bool ObstacleGenerator::setMaxObstacleNum(int max_obstacle_num)
 {
     _max_obstacle_num = max_obstacle_num;
-    std::cout << "setting max num obstacles to: " << _max_obstacle_num << std::endl;
+    std::cout << "Setting max num obstacles to: " << _max_obstacle_num << std::endl;
     return true;
+}
+
+bool ObstacleGenerator::setAngleThreshold(double angle)
+{
+    // discretized angle below which the obstacles' angle get rounded.
+    // All obstacles inside a discretized angle gets treated as the same angle
+    _angle_threshold = angle;
+    std::cout << "Setting angle threshold to: " << _angle_threshold << std::endl;
+    return true;
+
 }
 
 void ObstacleGenerator::setBlindAngle(double min_angle, double max_angle)
@@ -173,121 +282,30 @@ void ObstacleGenerator::setBlindAngle(double min_angle, double max_angle)
     _max_angle = fmod(max_angle, 2 * M_PI);
 
 //    std::cout << "set min: "<< _min_angle << std::endl;
-//    std::cout << "set max: "<< _max_angle << std::endl;
+    //    std::cout << "set max: "<< _max_angle << std::endl;
+}
+
+double ObstacleGenerator::getObstacleRadius()
+{
+    return _radius_obstacle;
+}
+
+int ObstacleGenerator::getMaxObstacleNum()
+{
+    return _max_obstacle_num;
+}
+
+double ObstacleGenerator::getAngleThreshold()
+{
+    return _angle_threshold;
 }
 
 void ObstacleGenerator::run()
 {
     // fill obstacles from sensors
     // clear markers at every cycle
-    _obstacle_markers.markers.clear(); // remove from here
-
     clearObstacles();
-    // compute obstacles from occupancy grid coming from laserscan
-    _obstacles_from_occupacy_grid();
-
-
-    // fake obstacles
-
-//    Eigen::Vector3d obstacle_origin(0, 0, 0);
-//    Eigen::Vector3d obstacle_radius(0.01, 0.01, 0.01);
-
-//    for (double angle=0.0; angle< 2 * M_PI;)
-//    {
-
-//        int num_obstacles_row = 3;
-//        if (angle == 0.0 || angle == 0.2)
-//        {
-//            num_obstacles_row = 50;
-//        }
-
-//        for (auto i=0; i<num_obstacles_row; i++)
-//        {
-
-
-//            Eigen::Vector3d origin(1.5 * cos(angle), 1.5 * sin(angle), 0);
-
-//            if (angle == 0.0 || angle == 0.2)
-//            {
-//                origin << 0.8 * cos(angle), 0.8 * sin(angle), 0;
-//            }
-
-//            obstacle_origin[0] = origin[0] + i * 0.03 * cos(angle);
-//            obstacle_origin[1] = origin[1] + i * 0.03 * sin(angle);
-//            auto obs = std::make_shared<SphereObstacle>(obstacle_origin, obstacle_radius);
-//            addObstacle(obs);
-//        }
-
-//        angle=angle+0.2;
-//    }
-
-    // Remove elements that meet the condition
-    auto condition = [this](Obstacle::Ptr obstacle)
-    {
-        double angle = obstacle->getAngle();
-
-//        if (angle < 0) {
-//            angle += 2 * M_PI; // Adjust negative angles to positive equivalents
-//        }
-
-//        std::cout << angle << std::endl;
-//        std::cout << _min_angle << std::endl;
-//        std::cout << _max_angle << std::endl;
-
-//        if (_min_angle > _max_angle)
-//        {
-//            return angle <= _min_angle && angle <= _max_angle;
-//        }
-
-        return angle >= _min_angle && angle <= _max_angle;
-    };
-
-    // remove obstacles in blind angle
-    _obstacles.erase(std::remove_if(_obstacles.begin(), _obstacles.end(), condition), _obstacles.end());
-    // sort obstacles by angle: the closest for each obstacle with the same angle from the origin
-    _obstacles = _sort_angle_distance();
-
-    // sort obstacles by distance: the closest to the origin
-//    std::sort(_obstacles.begin(), _obstacles.end(),
-//              [this](auto a, auto b)
-//    {
-//        return _min_distance(a, b);
-//    });
-
-
-
-//  visualize obstacle
-    auto id_obs = 0;
-    std_msgs::ColorRGBA color_marker;
-    for (auto elem : _obstacles)
-    {
-
-        if (auto obs = std::dynamic_pointer_cast<SphereObstacle>(elem))
-        {
-            if (id_obs < _max_obstacle_num)
-            {
-                color_marker.r = 0.0;
-                color_marker.g = 1.0;
-                color_marker.b = 0.0; // Yellow
-                color_marker.a = 1.0;
-
-            }
-            else
-            {
-                color_marker.r = 1.0;
-                color_marker.g = 1.0;
-                color_marker.b = 0.0;
-                color_marker.a = 1.0;
-            }
-                add_obstacle_viz(id_obs, obs->getOrigin(), obs->getRadius(), color_marker);
-                id_obs++;
-        }
-    }
-
-//    std::cout << "number of obstacles founds: " << id_obs << std::endl;
-
-    // publish obstacles
-    _obstacle_publisher.publish(_obstacle_markers);
+    _update();
 }
 
 std_msgs::ColorRGBA ObstacleGenerator::_get_default_color()
@@ -338,9 +356,11 @@ std::vector<Obstacle::Ptr> ObstacleGenerator::_sort_angle_distance()
     for (const auto& obstacle : _obstacles)
     {
         int discretized_angle = static_cast<int>(obstacle->getAngle() / _angle_threshold);
+//        std::cout << "found obstacle at angle: " << obstacle->getAngle() << "[discretized: " << discretized_angle << "]" << std::endl;
         slices_obstacle[discretized_angle].push_back(obstacle);
     }
 
+//    std::cout << "===========================" << std::endl;
     // sort all vector in map
     for (auto& pair : slices_obstacle)
     {
@@ -388,7 +408,7 @@ void ObstacleGenerator::_occupancy_grid_callback(const nav_msgs::OccupancyGrid::
     int width = msg->info.width;
     int height = msg->info.height;
 
-    if (width != _grid_width || height != _grid_width) {
+    if (width != _grid_width_cells || height != _grid_width_cells) {
         ROS_ERROR("Received grid size does not match expected size. Skipping processing.");
     }
 
