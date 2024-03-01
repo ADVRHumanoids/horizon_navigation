@@ -28,7 +28,7 @@ public:
     typedef Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> OccupancyMatrix;
 
 
-    ObstacleGenerator(int grid_height, int grid_width, double grid_resolution);
+    ObstacleGenerator(double grid_height, double grid_width, double grid_resolution);
     typedef std::shared_ptr<ObstacleGenerator> Ptr;
 
     bool addObstacle(Obstacle::Ptr obstacle);

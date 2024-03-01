@@ -8,7 +8,7 @@ namespace py = pybind11;
 PYBIND11_MODULE(pyObstacleGenerator, m) {
 
     py::class_<ObstacleGenerator, ObstacleGenerator::Ptr>(m, "ObstacleGenerator")
-            .def(py::init<int, int, double>())
+            .def(py::init<double, double, double>())
             .def("run", &ObstacleGenerator::run)
             .def("setMaxObstacleNum", &ObstacleGenerator::setMaxObstacleNum)
             .def("setObstacleRadius", &ObstacleGenerator::setObstacleRadius)

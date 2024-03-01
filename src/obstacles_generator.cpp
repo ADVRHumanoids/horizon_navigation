@@ -1,6 +1,6 @@
 #include <obstacles_generator.h>
 
-ObstacleGenerator::ObstacleGenerator(int grid_height, int grid_width, double grid_resolution):
+ObstacleGenerator::ObstacleGenerator(double grid_height, double grid_width, double grid_resolution):
     _grid_resolution(grid_resolution),
     _grid_origin(0, 0, 0),
     _min_angle(0.0),
@@ -9,11 +9,15 @@ ObstacleGenerator::ObstacleGenerator(int grid_height, int grid_width, double gri
     _nh = ros::NodeHandle("");
     _nhpr = ros::NodeHandle("~");
 
-    _occupancy_matrix.resize(grid_height, grid_width);
+    _grid_height_cells = static_cast<int>(grid_height / _grid_resolution); // from meters to grid units
+    _grid_width_cells = static_cast<int>(grid_width / _grid_resolution); // from meters to grid units
+
+    // initializing occupancy matrix
+    _occupancy_matrix.resize(_grid_height_cells, _grid_width_cells);
     _occupancy_matrix.setZero();
 
-    _grid_height_cells = grid_height;//  static_cast<int>(grid_height / _grid_resolution); // from meters to grid units
-    _grid_width_cells = grid_width; //static_cast<int>(grid_width / _grid_resolution); // from meters to grid units
+    std::cout << "Grid height: " << _grid_height_cells << std::endl;
+    std::cout << "Grid width: " << _grid_width_cells << std::endl;
 
     _radius_obstacle = _grid_resolution;
     _angle_threshold = _radius_obstacle;
@@ -408,7 +412,7 @@ void ObstacleGenerator::_occupancy_grid_callback(const nav_msgs::OccupancyGrid::
     int width = msg->info.width;
     int height = msg->info.height;
 
-    if (width != _grid_width_cells || height != _grid_width_cells) {
+    if (width != _grid_width_cells || height != _grid_height_cells) {
         ROS_ERROR("Received grid size does not match expected size. Skipping processing.");
     }
 
