@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- filtering the robot footprint -->
+    <node pkg="laser_filters" type="scan_to_scan_filter_chain" name="laser_filter">
+      <rosparam command="load" file="$(find horizon_navigation)/config/filter_scan_params.yaml" />
+<!--       <remap from="filtered_scan" to="scan" /> -->
+    </node>
+
+    <!-- visualizing the filtered out footprint -->
+    <node name="bounding_box_marker_publisher" pkg="horizon_navigation" type="laser_filter_rviz.py" output="screen" args="$(find horizon_navigation)/config/filter_scan_params.yaml"/>
+</launch>

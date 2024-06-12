@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<launch>
+
+    <!-- merging the two laser scan from the velodynes -->
+    <node pkg="tf" type="static_transform_publisher" name="link_laser" args=" 0.0 0.0 0.0 0.0 0.0 0.0 base_link laser 100" />
+
+    <node pkg="ira_laser_tools" name="laserscan_multi_merger" type="laserscan_multi_merger">
+       <param name="destination_frame" value="laser"/>
+       <param name="scan_destination_topic" value="/scan"/>
+       <param name="laserscan_topics" value ="/VLP16_lidar_back/pointcloud_to_scan /VLP16_lidar_front/pointcloud_to_scan" />
+       <param name="angle_min" value="-3.14"/>
+	   <param name="angle_max" value="3.14"/>
+	   <param name="angle_increment" value="0.00700000021607"/>
+	   <param name="scan_time" value="0.1"/>
+	   <param name="range_min" value="0.1"/>
+	   <param name="range_max" value="10.0"/>
+    </node>
+
+</launch>

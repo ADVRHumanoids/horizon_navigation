@@ -25,9 +25,17 @@ ObstacleGenerator::ObstacleGenerator(double grid_height, double grid_width, doub
 
 //    std::vector<Obstacle> _grid_slices(2 * M_PI / _angle_threshold);
 
+//    if (!ros::isInitialized())
+//    {
+//    std::cout << "Ros not initialized. Initializing." << std::endl;
+//    int argc = 0;
+//    char ** argv = nullptr;
+//    ros::init(argc, argv, "obstacle_generator_node");
+//    }
+
     _init_publishers();
 
-    std::string occupancy_grid_topic_name = "/costmap_node/costmap/costmap";
+    std::string occupancy_grid_topic_name = "/map";
     _init_subscribers(occupancy_grid_topic_name);
 
     _init_load_config();

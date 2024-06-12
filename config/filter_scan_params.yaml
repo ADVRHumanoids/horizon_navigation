@@ -1,0 +1,32 @@
+scan_filter_chain:
+- name: box
+  type: laser_filters/LaserScanBoxFilter
+  params:
+    box_frame: laser
+    min_x: -0.65 # 0.6
+    max_x: 0.65
+    min_y: -0.43 # 0.37
+    max_y: 0.43
+    min_z: -1.0
+    max_z: 1.0
+#- name: range
+#  type: laser_filters/LaserScanRangeFilter
+#  params:
+#    use_message_range_limits: true
+#    lower_threshold: 0.3
+#    upper_threshold: 16.0
+#    lower_replacement_value: NaN
+#    upper_replacement_value: NaN
+#- name: shadows
+#  type: laser_filters/ScanShadowsFilter
+#  params:
+#    min_angle: 10
+#    max_angle: 170
+#    neighbors: 20
+#    window: 1
+#- name: dark_shadows
+#  type: laser_filters/LaserScanIntensityFilter
+#  params:
+#    lower_threshold: 100
+#    upper_threshold: 10000
+#    disp_histogram: 0

@@ -11,7 +11,9 @@ find_package(yaml-cpp REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
              roscpp
              visualization_msgs
-             nav_msgs)
+             nav_msgs
+             tf2
+             tf2_ros)
 
 include_directories(
     include/
@@ -27,6 +29,7 @@ set(LIBRARY_TARGET_NAME horizon_navigation) # set library name
 add_library(${LIBRARY_TARGET_NAME} SHARED
   src/obstacle.cpp
   src/obstacles_generator.cpp
+  src/map_transformer.cpp
 )
 
 target_link_libraries(${LIBRARY_TARGET_NAME}
@@ -46,6 +49,12 @@ target_link_libraries(obstacle_generator_node
     horizon_navigation
     ${catkin_LIBRARIES})
 
+add_executable(map_transformer_node
+    src/map_transformer_node.cpp)
+
+target_link_libraries(map_transformer_node
+    horizon_navigation
+    ${catkin_LIBRARIES})
 
 #include(GNUInstallDirs)
 install(TARGETS  ${LIBRARY_TARGET_NAME}
@@ -55,6 +64,10 @@ install(TARGETS  ${LIBRARY_TARGET_NAME}
         RUNTIME  DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT bin)
 
 install(TARGETS obstacle_generator_node
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(TARGETS map_transformer_node
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

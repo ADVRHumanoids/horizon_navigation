@@ -1,0 +1,63 @@
+# basic params
+global_frame: map
+robot_base_frame: base_link
+update_frequency: 30.0
+publish_frequency: 30.0
+
+# use_sim_time: true
+# cost_scaling_factor: 0.2
+
+# map
+static_map: true
+rolling_window: true
+width: 6.0
+height: 6.0
+resolution: 0.01
+# map_type: costmap
+
+# obstacles
+transform_tolerance: 0.1
+obstacle_range: 6.0
+raytrace_range: 6.0
+
+# robot footprint
+footprint: [[-0.6, -0.37], [-0.6, 0.37], [0.6, 0.37], [0.6, -0.37]]
+footprint_padding: 0.2
+
+track_unknown_space: true
+always_send_full_costmap: true
+inflation_radius: 0.0
+
+observation_sources:  VLP16_lidar_back_base_link VLP16_lidar_front_base_link
+
+VLP16_lidar_front_base_link:
+  sensor_frame: VLP16_lidar_front_base_link
+  topic: /VLP16_lidar_front/pointcloud_to_scan
+  max_obstacle_height: 10.0
+  min_obstacle_height: -0.5
+  obstacle_max_range: 6.0
+  obstacle_min_range: 0.0
+  raytrace_max_range: 6.0
+  raytrace_min_range: 0.0
+  observation_persistence: 0.0
+  expected_update_rate: 0.3
+  clearing: true
+  marking: true
+  inf_is_valid: true # required for COSTMAP corret update
+  data_type: LaserScan
+
+VLP16_lidar_back_base_link:
+  sensor_frame: VLP16_lidar_back_base_link
+  topic: /VLP16_lidar_back/pointcloud_to_scan
+  max_obstacle_height: 10.0
+  min_obstacle_height: -0.5
+  obstacle_max_range: 6.0
+  obstacle_min_range: 0.0
+  raytrace_max_range: 6.0
+  raytrace_min_range: 0.0
+  observation_persistence: 0.0
+  expected_update_rate: 0.3
+  clearing: true
+  marking: true
+  inf_is_valid: true # required for COSTMAP corret update
+  data_type: LaserScan
