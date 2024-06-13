@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
 <launch>
 
-    <include file="$(find horizon_navigation)/launch/velodyne_to_laserscan.launch"/>
-    <include file="$(find horizon_navigation)/launch/laserscan_merge.launch"/>
-    <include file="$(find horizon_navigation)/launch/laserscan_filter.launch"/>
+    <include file="$(find horizon_navigation)/launch/velodyne_to_laserscan.launch"/> <!-- transform velodyne to laserscan -->
+    <include file="$(find horizon_navigation)/launch/laserscan_merge.launch"/> <!-- merge laserscan together -->
+    <include file="$(find horizon_navigation)/launch/laserscan_filter.launch"/> <!-- filter robot body from laserscan -->
 
-    <include file="$(find horizon_navigation)/launch/costmap2d.launch"/>
+    <include file="$(find horizon_navigation)/launch/costmap2d.launch"/> <!-- create a local map -->
 
     <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
       <remap from="scan" to="scan_filtered"/>
@@ -14,6 +14,7 @@
 <!--       <param name="output_frame" value="odom"/> -->
 <!--       <param name="base_footprint_frame" value="base_link"/> -->
       <param name="map_update_interval" value="1.0"/>
+      <param name="transform_publish_period" value="0.005"/>  <!-- tf transform rate /map -->
 <!--       <param name="maxUrange" value="2.0"/> -->
 <!--       <param name="sigma" value="0.05"/> -->
 <!--       <param name="kernelSize" value="1"/> -->
@@ -36,7 +37,7 @@
       <param name="ymin" value="-5.0"/>
       <param name="xmax" value="5.0"/>
       <param name="ymax" value="5.0"/>
-      <param name="delta" value="0.01"/>
+      <param name="delta" value="0.01"/>  <!-- resolution of the map -->
 <!--       <param name="llsamplerange" value="0.01"/> -->
 <!--       <param name="llsamplestep" value="0.01"/> -->
 <!--       <param name="lasamplerange" value="0.005"/> -->
@@ -46,8 +47,14 @@
 
     </node>
 
-<!--     <node name="costmap_node" pkg="costmap_2d" type="costmap_2d_node" > -->
-<!--       <rosparam file="$(find horizon_navigation)/config/local_layer_params.yaml" command="load" ns="costmap" /> -->
-<!--     </node> -->
-<!--     <node pkg="rviz"  type="rviz"  name="rviz"  args="-d $(find limo_bringup)/rviz/gmapping.rviz" /> -->
+    <node pkg="horizon_navigation" type="map_transformer_node" name="map_transformer_node" output="screen">
+        <remap from="global_map" to="map"/>
+        <remap from="local_map" to="/costmap_node/costmap/costmap"/>
+        <param name="rate" value="1000"/>
+        <param name="map_width" value="20.0"/>
+        <param name="map_height" value="20.0"/>
+        <param name="blind_zone_width" value="2.0"/>
+        <param name="blind_zone_height" value="2.0"/>
+
+    </node>
 </launch>
