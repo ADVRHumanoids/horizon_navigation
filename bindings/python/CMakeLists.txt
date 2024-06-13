@@ -22,14 +22,11 @@ if(${pybind11_FOUND})
     install(TARGETS pyObstacle
             DESTINATION ${PYTHON_SITE}/${PROJECT_NAME})
 
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR})
     pybind11_add_module(pyObstacleGenerator pyObstacleGenerator.cpp)
     target_link_libraries(pyObstacleGenerator PUBLIC horizon_navigation)
 
     install(TARGETS pyObstacleGenerator
             DESTINATION ${PYTHON_SITE}/${PROJECT_NAME})
-
-    install(FILES __init__.py DESTINATION ${PYTHON_SITE}/${PROJECT_NAME})
 
 
 #    include_directories(${CMAKE_CURRENT_SOURCE_DIR})
