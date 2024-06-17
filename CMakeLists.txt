@@ -56,6 +56,13 @@ target_link_libraries(map_transformer_node
     horizon_navigation
     ${catkin_LIBRARIES})
 
+add_executable(sonar_node
+    src/sonar_node.cpp)
+
+target_link_libraries(sonar_node
+    horizon_navigation
+    ${catkin_LIBRARIES})
+
 #include(GNUInstallDirs)
 install(TARGETS  ${LIBRARY_TARGET_NAME}
         EXPORT   ${LIBRARY_TARGET_NAME}
