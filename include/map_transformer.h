@@ -14,7 +14,13 @@ class MapTransformer
 {
 public:
 
-    MapTransformer(double map_width, double map_height, double exclusion_zone_width, double exclusion_zone_height);
+    MapTransformer(double map_width,
+                   double map_height,
+                   double blind_zone_width,
+                   double blind_zone_height,
+                   double world_map_width,
+                   double world_map_height);
+
     void update();
 
 private:
@@ -23,7 +29,7 @@ private:
     void localMapCallback(const nav_msgs::OccupancyGrid::ConstPtr& map_msg);
     nav_msgs::OccupancyGrid transformAndFilter(nav_msgs::OccupancyGrid a_map,
                                  const nav_msgs::OccupancyGrid& b_map,
-                                 const geometry_msgs::TransformStamped& transformStamped,
+                                 const tf2::Transform& transformStamped,
                                  double patch_width,
                                  double patch_height);
 
@@ -64,13 +70,13 @@ private:
 
     ros::NodeHandle _nh, _nhpr;
     ros::Subscriber _local_map_sub; // _global_map_sub,
-    ros::Publisher _world_map_pub;
+    ros::Publisher _world_map_pub, _transformed_local_pub;
     tf2_ros::Buffer _tfBuffer;
     tf2_ros::TransformListener _tfListener;
 
     nav_msgs::OccupancyGrid::ConstPtr _latest_local_map; // _latest_global_map
-    nav_msgs::OccupancyGrid _world_map; // _map_filter, _global_map_temp, _global_map_filtered;
-    double _map_width, _map_height, _blind_zone_width, _blind_zone_height;  // Width of the world map and the exclusion zone in meters
+    nav_msgs::OccupancyGrid _world_map, _transformed_local_map; // _map_filter, _global_map_temp, _global_map_filtered;
+    double _map_width, _map_height, _world_map_width, _world_map_height, _blind_zone_width, _blind_zone_height;  // Width of the world map and the exclusion zone in meters
 };
 
 #endif // MAP_TRANSFORMER_H

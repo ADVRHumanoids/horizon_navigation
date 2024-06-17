@@ -1,18 +1,27 @@
 #include <map_transformer.h>
 #include <chrono>
 
-MapTransformer::MapTransformer(double world_map_width, double world_map_height, double blind_zone_width, double blind_zone_height):
+MapTransformer::MapTransformer(double map_width,
+                               double map_height,
+                               double blind_zone_width,
+                               double blind_zone_height,
+                               double world_map_width,
+                               double world_map_height)
+:
     _tfBuffer(),
     _tfListener(_tfBuffer),
-    _map_width(world_map_width),
-    _map_height(world_map_height),
+    _map_width(map_width),
+    _map_height(map_height),
+    _world_map_width(world_map_width),
+    _world_map_height(world_map_height),
     _blind_zone_width(blind_zone_width),
     _blind_zone_height(blind_zone_height)
 {
 
 //    _global_map_sub = _nh.subscribe("/global_map", 1, &MapTransformer::globalMapCallback, this);
     _local_map_sub = _nh.subscribe("/local_map", 1, &MapTransformer::localMapCallback, this);
-    _world_map_pub = _nh.advertise<nav_msgs::OccupancyGrid>("/transformed_map", 1);
+    _world_map_pub = _nh.advertise<nav_msgs::OccupancyGrid>("/world_map", 1);
+    _transformed_local_pub = _nh.advertise<nav_msgs::OccupancyGrid>("/transformed_local_map", 1);
 
     auto local_map = ros::topic::waitForMessage<nav_msgs::OccupancyGrid>("/local_map", _nh);
 
@@ -33,6 +42,25 @@ MapTransformer::MapTransformer(double world_map_width, double world_map_height, 
     _world_map.info.height = static_cast<unsigned int>(world_map_width / _world_map.info.resolution);
     _world_map.data.resize(_world_map.info.width * _world_map.info.height, -1);
 
+
+    _transformed_local_map.header.frame_id = "base_link";
+
+    _transformed_local_map.info.origin.position.x = - _map_width / 2;
+    _transformed_local_map.info.origin.position.y = - _map_height / 2;
+    _transformed_local_map.info.origin.position.z = 0;
+    _transformed_local_map.info.origin.orientation.x = 0;
+    _transformed_local_map.info.origin.orientation.y = 0;
+    _transformed_local_map.info.origin.orientation.z = 0;
+    _transformed_local_map.info.origin.orientation.w = 1;
+
+    _transformed_local_map.info.resolution = local_map->info.resolution; //local_map->info.resolution;
+
+    _transformed_local_map.info.width = static_cast<unsigned int>(_map_width / _transformed_local_map.info.resolution);
+    _transformed_local_map.info.height = static_cast<unsigned int>(_map_height / _transformed_local_map.info.resolution);
+    _transformed_local_map.data.resize(_transformed_local_map.info.width * _transformed_local_map.info.height, -1);
+
+
+
 }
 
 void MapTransformer::localMapCallback(const nav_msgs::OccupancyGrid::ConstPtr& map_msg) {
@@ -50,13 +78,24 @@ void MapTransformer::update()
         try
         {
             // Get the transformation from /map to /base_link
-            geometry_msgs::TransformStamped base_link_T_map = _tfBuffer.lookupTransform("base_link",
-                                                                                        "map",
-                                                                                        _latest_local_map->header.stamp,
-                                                                                        ros::Duration(1.0));
+            geometry_msgs::TransformStamped base_link_T_map_transform = _tfBuffer.lookupTransform("base_link",
+                                                                                                  "map",
+                                                                                                  _latest_local_map->header.stamp,
+                                                                                                  ros::Duration(1.0));
 
+            // Convert the transform to a tf2::Transform
+            tf2::Transform base_link_T_map;
+            tf2::fromMsg(base_link_T_map_transform.transform, base_link_T_map);
+
+            // transform the latest local map to the /map frame provided from the SLAM
+            // filter the blind zone
             _world_map = transformAndFilter(_world_map, *_latest_local_map, base_link_T_map, _blind_zone_width, _blind_zone_height);
+
+            // transfrom the world map to the local frame /base_link
+            _transformed_local_map = transformAndFilter(_transformed_local_map, _world_map, base_link_T_map.inverse(), 0.0, 0.0);
+
             _world_map_pub.publish(_world_map);
+            _transformed_local_pub.publish(_transformed_local_map);
         }
         catch (tf2::TransformException &ex)
         {
@@ -67,13 +106,11 @@ void MapTransformer::update()
 
 nav_msgs::OccupancyGrid MapTransformer::transformAndFilter(nav_msgs::OccupancyGrid map_a,
                                              const nav_msgs::OccupancyGrid& map_b,
-                                             const geometry_msgs::TransformStamped& transformStamped,
+                                             const tf2::Transform& b_T_a,
                                              double patch_width,
                                              double patch_height)
 {
-
     // transform map_b into map_a coordinate, update map_a with the obtained data except the blind zone
-
     nav_msgs::OccupancyGrid map_a_updated = map_a;
 
     // Define the center of the square in the base_link frame (assuming the center of the map)
@@ -88,11 +125,6 @@ nav_msgs::OccupancyGrid MapTransformer::transformAndFilter(nav_msgs::OccupancyGr
     int exclude_start_y = static_cast<int>(center_y) - static_cast<int>(patch_height_cells / 2);
     int exclude_end_x = static_cast<int>(center_x) + static_cast<int>(patch_width_cells / 2);
     int exclude_end_y = static_cast<int>(center_y) + static_cast<int>(patch_height_cells / 2);
-
-
-    // Convert the transform to a tf2::Transform
-    tf2::Transform tf_transform;
-    tf2::fromMsg(transformStamped.transform, tf_transform);
 
     // Iterate over the local map data and update the global map
     for (unsigned int b_y = 0; b_y < map_b.info.height; b_y++)
@@ -112,7 +144,7 @@ nav_msgs::OccupancyGrid MapTransformer::transformAndFilter(nav_msgs::OccupancyGr
             tf2::Vector3 world_a_point(w_x, w_y, 0);
 
             // Transform to the global map frame
-            tf2::Vector3 world_b_point = tf_transform.inverse() * world_a_point;
+            tf2::Vector3 world_b_point = b_T_a.inverse() * world_a_point;
 
             int a_x = static_cast<int>((world_b_point.x() - map_a.info.origin.position.x) / map_a.info.resolution);
             int a_y = static_cast<int>((world_b_point.y() - map_a.info.origin.position.y) / map_a.info.resolution);

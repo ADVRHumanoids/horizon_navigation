@@ -51,10 +51,12 @@
         <remap from="global_map" to="map"/>
         <remap from="local_map" to="/costmap_node/costmap/costmap"/>
         <param name="rate" value="1000"/>
-        <param name="map_width" value="20.0"/>
-        <param name="map_height" value="20.0"/>
-        <param name="blind_zone_width" value="2.0"/>
-        <param name="blind_zone_height" value="2.0"/>
+        <param name="map_width" value="6.0"/>
+        <param name="map_height" value="6.0"/>
+        <param name="world_map_width" value="20.0"/>
+        <param name="world_map_height" value="20.0"/>
+        <param name="blind_zone_width" value="3.0"/>
+        <param name="blind_zone_height" value="3.0"/>
 
     </node>
 </launch>

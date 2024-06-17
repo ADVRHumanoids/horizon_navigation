@@ -28,7 +28,7 @@ public:
     typedef Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> OccupancyMatrix;
 
 
-    ObstacleGenerator(double grid_height, double grid_width, double grid_resolution);
+    ObstacleGenerator(double grid_height, double grid_width, double grid_resolution, std::string topic_name = "/map");
     typedef std::shared_ptr<ObstacleGenerator> Ptr;
 
     bool addObstacle(Obstacle::Ptr obstacle);
@@ -83,6 +83,8 @@ private:
     double _angle_threshold;
 
     double _min_angle, _max_angle;
+
+    std::string _occupancy_grid_topic_name;
 
     YAML::Node _config;
 

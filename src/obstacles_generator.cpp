@@ -1,10 +1,11 @@
 #include <obstacles_generator.h>
 
-ObstacleGenerator::ObstacleGenerator(double grid_height, double grid_width, double grid_resolution):
+ObstacleGenerator::ObstacleGenerator(double grid_height, double grid_width, double grid_resolution, std::string topic_name):
     _grid_resolution(grid_resolution),
     _grid_origin(0, 0, 0),
     _min_angle(0.0),
-    _max_angle(0.0)
+    _max_angle(0.0),
+    _occupancy_grid_topic_name(topic_name)
 {
     _nh = ros::NodeHandle("");
     _nhpr = ros::NodeHandle("~");
@@ -35,6 +36,7 @@ ObstacleGenerator::ObstacleGenerator(double grid_height, double grid_width, doub
 
     _init_publishers();
 
+    // name of topic from which the occupancy map is taken
     std::string occupancy_grid_topic_name = "/map";
     _init_subscribers(occupancy_grid_topic_name);
 
@@ -147,6 +149,7 @@ void ObstacleGenerator::add_obstacle_viz(int id, Eigen::Vector3d origin, Eigen::
     obstacle_marker.color.r = color.r;
     obstacle_marker.color.g = color.g;
     obstacle_marker.color.b = color.b;
+
     _obstacle_markers.markers.push_back(obstacle_marker);
 
 }
