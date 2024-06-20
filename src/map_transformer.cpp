@@ -20,8 +20,9 @@ MapTransformer::MapTransformer(double map_width,
 
 //    _global_map_sub = _nh.subscribe("/global_map", 1, &MapTransformer::globalMapCallback, this);
     _local_map_sub = _nh.subscribe("/local_map", 1, &MapTransformer::localMapCallback, this);
-    _world_map_pub = _nh.advertise<nav_msgs::OccupancyGrid>("/world_map", 1);
-    _transformed_local_pub = _nh.advertise<nav_msgs::OccupancyGrid>("/transformed_local_map", 1);
+
+    _world_map_pub = _nh.advertise<nav_msgs::OccupancyGrid>("/filtered_world_map", 1);
+    _transformed_local_pub = _nh.advertise<nav_msgs::OccupancyGrid>("/filtered_local_map", 1);
 
     auto local_map = ros::topic::waitForMessage<nav_msgs::OccupancyGrid>("/local_map", _nh);
 
@@ -53,7 +54,7 @@ MapTransformer::MapTransformer(double map_width,
     _transformed_local_map.info.origin.orientation.z = 0;
     _transformed_local_map.info.origin.orientation.w = 1;
 
-    _transformed_local_map.info.resolution = local_map->info.resolution; //local_map->info.resolution;
+    _transformed_local_map.info.resolution = 0.01; //local_map->info.resolution;
 
     _transformed_local_map.info.width = static_cast<unsigned int>(_map_width / _transformed_local_map.info.resolution);
     _transformed_local_map.info.height = static_cast<unsigned int>(_map_height / _transformed_local_map.info.resolution);
@@ -63,7 +64,8 @@ MapTransformer::MapTransformer(double map_width,
 
 }
 
-void MapTransformer::localMapCallback(const nav_msgs::OccupancyGrid::ConstPtr& map_msg) {
+void MapTransformer::localMapCallback(const nav_msgs::OccupancyGrid::ConstPtr& map_msg)
+{
     _latest_local_map = map_msg;
 }
 
@@ -74,7 +76,8 @@ void MapTransformer::localMapCallback(const nav_msgs::OccupancyGrid::ConstPtr& m
 
 void MapTransformer::update()
 {
-    if (_latest_local_map) {
+    if (_latest_local_map)
+    {
         try
         {
             // Get the transformation from /map to /base_link

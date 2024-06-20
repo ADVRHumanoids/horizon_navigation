@@ -37,8 +37,8 @@ ObstacleGenerator::ObstacleGenerator(double grid_height, double grid_width, doub
     _init_publishers();
 
     // name of topic from which the occupancy map is taken
-    std::string occupancy_grid_topic_name = "/map";
-    _init_subscribers(occupancy_grid_topic_name);
+//    std::string occupancy_grid_topic_name = "/map";
+    _init_subscribers(_occupancy_grid_topic_name);
 
     _init_load_config();
 }
@@ -424,7 +424,7 @@ void ObstacleGenerator::_occupancy_grid_callback(const nav_msgs::OccupancyGrid::
     int height = msg->info.height;
 
     if (width != _grid_width_cells || height != _grid_height_cells) {
-        ROS_ERROR("Received grid size does not match expected size. Skipping processing.");
+        ROS_ERROR("Received grid (%d x %d) size does not match expected size (%d x %d). Skipping processing.", width, height, _grid_width_cells, _grid_height_cells);
     }
 
     // Copy grid data into the matrix
