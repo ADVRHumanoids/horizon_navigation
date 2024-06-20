@@ -27,7 +27,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: LaserScan
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -452,7 +452,7 @@ Visualization Manager:
       Marker Topic: /filtered_robot_footprint
       Name: Marker
       Namespaces:
-        {}
+        footprint_robot: true
       Queue Size: 100
       Value: true
     - Alpha: 0.699999988079071
@@ -491,7 +491,7 @@ Visualization Manager:
       Draw Behind: false
       Enabled: true
       Name: Map
-      Topic: /transformed_local_map
+      Topic: /filtered_local_map
       Unreliable: false
       Use Timestamp: false
       Value: true
@@ -576,6 +576,10 @@ Visualization Manager:
           Value: false
         end_effector_E:
           Value: false
+        laser:
+          Value: true
+        map:
+          Value: true
         mobile_base:
           Value: false
         odom:
@@ -745,86 +749,89 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
-        odom:
-          base_link:
-            dalsa_camera_left:
-              {}
-            dalsa_camera_right:
-              {}
-            mobile_base:
-              D435i_camera_back_bottom_screw_frame:
+        map:
+          odom:
+            base_link:
+              dalsa_camera_left:
                 {}
-              D435i_camera_front_bottom_screw_frame:
+              dalsa_camera_right:
                 {}
-              J1_A_stator:
-                L_1_A:
-                  J_wheel_A_stator:
-                    wheel_A:
-                      {}
-              J1_B_stator:
-                L_1_B:
-                  J_wheel_B_stator:
-                    wheel_B:
-                      {}
-              J1_C_stator:
-                L_1_C:
-                  J_wheel_C_stator:
-                    wheel_C:
-                      {}
-              J1_D_stator:
-                L_1_D:
-                  J_wheel_D_stator:
-                    wheel_D:
-                      {}
-              J1_E_stator:
-                L_1_E:
-                  J2_E_stator:
-                    L_2_E:
-                      J3_E_stator:
-                        L_3_E:
-                          J4_E_stator:
-                            L_4_E:
-                              J5_E_stator:
-                                L_5_E:
-                                  J6_E_stator:
-                                    L_6_E:
-                                      end_effector_E:
-                                        ee_E:
-                                          {}
-              T265_camera_left_pose_frame:
+              laser:
                 {}
-              T265_camera_right_pose_frame:
-                {}
-              VLP16_lidar_back_base_link:
-                VLP16_lidar_back:
+              mobile_base:
+                D435i_camera_back_bottom_screw_frame:
                   {}
-              VLP16_lidar_front_base_link:
-                VLP16_lidar_front:
+                D435i_camera_front_bottom_screw_frame:
                   {}
-              ultrasound_fl_lat_base_link:
-                ultrasound_fl_lat:
+                J1_A_stator:
+                  L_1_A:
+                    J_wheel_A_stator:
+                      wheel_A:
+                        {}
+                J1_B_stator:
+                  L_1_B:
+                    J_wheel_B_stator:
+                      wheel_B:
+                        {}
+                J1_C_stator:
+                  L_1_C:
+                    J_wheel_C_stator:
+                      wheel_C:
+                        {}
+                J1_D_stator:
+                  L_1_D:
+                    J_wheel_D_stator:
+                      wheel_D:
+                        {}
+                J1_E_stator:
+                  L_1_E:
+                    J2_E_stator:
+                      L_2_E:
+                        J3_E_stator:
+                          L_3_E:
+                            J4_E_stator:
+                              L_4_E:
+                                J5_E_stator:
+                                  L_5_E:
+                                    J6_E_stator:
+                                      L_6_E:
+                                        end_effector_E:
+                                          ee_E:
+                                            {}
+                T265_camera_left_pose_frame:
                   {}
-              ultrasound_fl_sag_base_link:
-                ultrasound_fl_sag:
+                T265_camera_right_pose_frame:
                   {}
-              ultrasound_fr_lat_base_link:
-                ultrasound_fr_lat:
-                  {}
-              ultrasound_fr_sag_base_link:
-                ultrasound_fr_sag:
-                  {}
-              ultrasound_rl_lat_base_link:
-                ultrasound_rl_lat:
-                  {}
-              ultrasound_rl_sag_base_link:
-                ultrasound_rl_sag:
-                  {}
-              ultrasound_rr_lat_base_link:
-                ultrasound_rr_lat:
-                  {}
-              ultrasound_rr_sag_base_link:
-                ultrasound_rr_sag:
-                  {}
+                VLP16_lidar_back_base_link:
+                  VLP16_lidar_back:
+                    {}
+                VLP16_lidar_front_base_link:
+                  VLP16_lidar_front:
+                    {}
+                ultrasound_fl_lat_base_link:
+                  ultrasound_fl_lat:
+                    {}
+                ultrasound_fl_sag_base_link:
+                  ultrasound_fl_sag:
+                    {}
+                ultrasound_fr_lat_base_link:
+                  ultrasound_fr_lat:
+                    {}
+                ultrasound_fr_sag_base_link:
+                  ultrasound_fr_sag:
+                    {}
+                ultrasound_rl_lat_base_link:
+                  ultrasound_rl_lat:
+                    {}
+                ultrasound_rl_sag_base_link:
+                  ultrasound_rl_sag:
+                    {}
+                ultrasound_rr_lat_base_link:
+                  ultrasound_rr_lat:
+                    {}
+                ultrasound_rr_sag_base_link:
+                  ultrasound_rr_sag:
+                    {}
         odometry/world:
           odometry/base_link:
             odometry/dalsa_camera_left:
@@ -907,6 +914,22 @@ Visualization Manager:
                   {}
       Update Interval: 0
       Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /robot_navigation_marker
+      Name: Marker
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /obstacles
+      Name: MarkerArray
+      Namespaces:
+        sphere: true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -935,7 +958,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 5.917000770568848
+      Distance: 7.422286033630371
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -943,17 +966,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -1.1304312944412231
-        Y: 2.0224528312683105
-        Z: 0.740333616733551
+        X: 0.036322105675935745
+        Y: 0.7729644179344177
+        Z: 0.469084233045578
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.1097966432571411
+      Pitch: 0.6347970962524414
       Target Frame: <Fixed Frame>
-      Yaw: 0.8104161024093628
+      Yaw: 0.7054163217544556
     Saved: ~
 Window Geometry:
   Displays:

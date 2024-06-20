@@ -13,7 +13,9 @@ find_package(catkin REQUIRED COMPONENTS
              visualization_msgs
              nav_msgs
              tf2
-             tf2_ros)
+             tf2_ros
+             grid_map_core
+             grid_map_ros)
 
 include_directories(
     include/
@@ -30,6 +32,7 @@ add_library(${LIBRARY_TARGET_NAME} SHARED
   src/obstacle.cpp
   src/obstacles_generator.cpp
   src/map_transformer.cpp
+  src/sonar.cpp
 )
 
 target_link_libraries(${LIBRARY_TARGET_NAME}
@@ -57,7 +60,7 @@ target_link_libraries(map_transformer_node
     ${catkin_LIBRARIES})
 
 add_executable(sonar_node
-    src/sonar_node.cpp)
+    src/ros/sonar_node.cpp)
 
 target_link_libraries(sonar_node
     horizon_navigation
@@ -78,5 +81,8 @@ install(TARGETS map_transformer_node
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
+install(TARGETS sonar_node
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 add_subdirectory(bindings/python/)
 # add_subdirectory(tests/)
