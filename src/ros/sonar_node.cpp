@@ -1,21 +1,102 @@
 #include <ros/sonar_node.h>
 
-SonarRos::SonarRos(std::vector<std::string> sensor_topic_names):
-    _sensor_topic_names(sensor_topic_names),
+SonarRos::SonarRos():
+//    _sensor_topic_names(sensor_topic_names),
     _tfBuffer(),
     _tfListener(_tfBuffer),
     _rate(30.0)
 {
 
+    _nh = ros::NodeHandle("");
+    _nhpr = ros::NodeHandle("~");
+
+    // get sensor info
+    load_param_file();
+
+    ROS_INFO_STREAM("Sensors: ");
+    for (auto sensor : _sensor_topics)
+    {
+        ROS_INFO_STREAM(" --> " + sensor.first);
+        ROS_INFO_STREAM("    topic: " + sensor.second);
+    }
+
+    // open sensor_map topic
     init_publishers();
+    // subscribe to range msgs
     init_subscribers();
+    // get transform of sensor from tf2
     init_transform();
 
+    // initialize map
     Eigen::Vector2d map_origin(0.0, 0.0);
-    _sonar_occupancy_map = std::make_unique<SonarOccupancyMap>(map_origin, _origin_T_sensor_dict);
+    _sonar_occupancy_map = std::make_unique<SonarOccupancyMap>(map_origin);
 
+    // add sensors
+    for (auto &sensor : _sensors)
+    {
+        sensor.second.arc_resolution = 30;
+        _sonar_occupancy_map->addSensor(sensor.first, sensor.second);
+    }
 }
 
+bool SonarRos::load_param_file()
+{
+
+    std::string config_file_path;
+    if (!_nhpr.getParam("config_file", config_file_path))
+    {
+        ROS_ERROR("Failed to get param 'config_file'");
+        return false;
+    }
+
+    try
+    {
+        YAML::Node config = YAML::LoadFile(config_file_path);
+        if (config["sensors"])
+        {
+            for (const auto& sensor : config["sensors"])
+            {
+                std::string sensor_name = sensor.first.as<std::string>();
+                YAML::Node sensor_config = sensor.second;
+
+                if (_sensors.count(sensor_name) != 0)
+                {
+                    ROS_ERROR("Multiple sensors added with the same name: %s", sensor_name.c_str());
+                }
+
+                if (sensor_config["topic_name"])
+                {
+                    _sensor_topics[sensor_name] = sensor_config["topic_name"].as<std::string>();
+                }
+                else
+                {
+                    ROS_ERROR("Sensor '%s' requires param 'topic_name'.", sensor_name.c_str());
+                }
+
+                if (sensor_config["detection_range"])
+                {
+                    _sensors[sensor_name].detection_range = sensor_config["detection_range"].as<double>();
+                }
+//                else
+//                {
+//                    ROS_WARN("Sensor '%s' requires param 'topic_name'.", sensor_name.c_str());
+//                }
+
+            }
+        }
+        else
+        {
+            ROS_ERROR("No 'sensors' section in config file.");
+        }
+    }
+    catch (const YAML::Exception& e)
+    {
+        ROS_ERROR("YAML Exception: %s", e.what());
+        return false;
+    }
+
+    return true;
+}
 
 void SonarRos::init_publishers()
 {
@@ -24,28 +105,26 @@ void SonarRos::init_publishers()
 
 void SonarRos::init_subscribers()
 {
-    for (auto sensor_topic_name : _sensor_topic_names)
+    for (auto sensor : _sensor_topics)
     {
-        _range_subs[sensor_topic_name] = _nh.subscribe<sensor_msgs::Range>(sensor_topic_name, 1000, &SonarRos::rangeCallback, this);
-        auto msg = ros::topic::waitForMessage<sensor_msgs::Range>(sensor_topic_name, _nh);
-        _range_msgs[msg->header.frame_id] = msg;
+        _range_subs[sensor.first] = _nh.subscribe<sensor_msgs::Range>(sensor.second, 1000, &SonarRos::rangeCallback, this);
+        auto msg = ros::topic::waitForMessage<sensor_msgs::Range>(sensor.second, _nh);
+        _range_msgs[sensor.first] = msg;
     }
-
-
 }
 
 void SonarRos::init_transform()
 {
     try
     {
-        for (auto range_msg : _range_msgs)
+        for (auto &sensor : _sensors)
         {
             auto origin_T_sensor_transform = _tfBuffer.lookupTransform("base_link",
-                                                                       range_msg.second->header.frame_id,
+                                                                       _range_msgs[sensor.first]->header.frame_id,
                                                                        ros::Time(0), //_latest_local_map->header.stamp
                                                                        ros::Duration(1.0));
 
-            _origin_T_sensor_dict[range_msg.second->header.frame_id] = tf2::transformToEigen(origin_T_sensor_transform);
+            sensor.second.origin_T_sensor = tf2::transformToEigen(origin_T_sensor_transform);
         }
 
 
@@ -73,8 +152,8 @@ void SonarRos::spin()
             {
                 if (range_msg.second)
                 {
-                    // add data to grid map.
-                    _sonar_occupancy_map->setData(range_msg.second->header.frame_id,
+                    _sonar_occupancy_map->setData(range_msg.first,
+                                                  range_msg.second->header.frame_id,
                                                   range_msg.second->range,
                                                   range_msg.second->min_range,
                                                   range_msg.second->max_range,
@@ -106,12 +185,14 @@ void SonarRos::spin()
 int main(int argc, char** argv)
 {
 
-    ros::init(argc, argv, "grid_map_simple_demo");
+    ros::init(argc, argv, "sonar_node");
 
-    std::vector<std::string> sonar_names;
-    sonar_names.push_back("/bosch_uss5/ultrasound_fl_sag");
+//    std::vector<std::string> sonar_names;
 
-    auto sr = SonarRos(sonar_names);
+//    sonar_names.push_back("/bosch_uss5/ultrasound_rr_sag");
+//    sonar_names.push_back("/bosch_uss5/ultrasound_rr_lat");
+
+    auto sr = SonarRos();
     sr.spin();
     return 0;
 

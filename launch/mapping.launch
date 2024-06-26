@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
 <launch>
 
-    <include file="$(find horizon_navigation)/launch/velodyne_to_laserscan.launch"/> <!-- transform velodyne to laserscan -->
-    <include file="$(find horizon_navigation)/launch/laserscan_merge.launch"/> <!-- merge laserscan together -->
-    <include file="$(find horizon_navigation)/launch/laserscan_filter.launch"/> <!-- filter robot body from laserscan -->
+    <include file="$(find horizon_navigation)/launch/sublaunch/velodyne_to_laserscan.launch"/> <!-- transform velodyne to laserscan -->
+    <include file="$(find horizon_navigation)/launch/sublaunch/laserscan_merge.launch"/> <!-- merge laserscan together -->
+    <include file="$(find horizon_navigation)/launch/sublaunch/laserscan_filter.launch"/> <!-- filter robot body from laserscan -->
 
-    <include file="$(find horizon_navigation)/launch/costmap2d.launch"/> <!-- create a local map -->
+    <include file="$(find horizon_navigation)/launch/sublaunch/costmap2d.launch"/> <!-- create a local map -->
 
     <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
       <remap from="scan" to="scan_filtered"/>

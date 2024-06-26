@@ -1,0 +1,13 @@
+sensors:
+
+    ultrasound_rr_sag:
+        topic_name: /bosch_uss5/ultrasound_rr_sag
+        detection_range: 0.4
+
+    ultrasound_rr_lat:
+        topic_name: /bosch_uss5/ultrasound_rr_lat
+        detection_range: 0.4
+
+    ultrasound_fr_lat:
+        topic_name: /bosch_uss5/ultrasound_fr_lat
+        detection_range: 0.4

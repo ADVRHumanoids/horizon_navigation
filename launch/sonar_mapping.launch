@@ -1,0 +1,6 @@
+<launch>
+    <!-- Launch the grid map simple demo node -->
+    <node pkg="horizon_navigation" type="sonar_node" name="sonar_node" output="screen">
+        <param name="config_file" type="string" value="$(find horizon_navigation)/config/sonar_config.yaml"/>
+    </node>
+</launch>
