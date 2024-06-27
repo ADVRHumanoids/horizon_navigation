@@ -7,7 +7,14 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
+#include <tf2_eigen/tf2_eigen.h>
 #include <yaml-cpp/yaml.h>
+
+#include <grid_map_core/GridMap.hpp>
+#include <grid_map_core/iterators/GridMapIterator.hpp>
+#include <grid_map_ros/grid_map_ros.hpp>
+#include <grid_map_msgs/GridMap.h>
+
 
 class MapTransformer
 {
@@ -16,9 +23,7 @@ public:
     MapTransformer(double map_width,
                    double map_height,
                    double blind_zone_width,
-                   double blind_zone_height,
-                   double world_map_width,
-                   double world_map_height);
+                   double blind_zone_height);
 
     void update();
 
@@ -32,50 +37,28 @@ private:
                                  double patch_width,
                                  double patch_height);
 
-//    nav_msgs::OccupancyGrid additiveUpdate(nav_msgs::OccupancyGrid input_map,
-//                                           const nav_msgs::OccupancyGrid& updating_map,
-//                                           const geometry_msgs::TransformStamped& transformStamped,
-//                                           double patch_width,
-//                                           double patch_height);
-//    nav_msgs::OccupancyGrid subtractiveUpdate(nav_msgs::OccupancyGrid input_map,
-//                                              const nav_msgs::OccupancyGrid& updating_map,
-//                                              const geometry_msgs::TransformStamped& transformStamped,
-//                                              double patch_width,
-//                                              double patch_height);
-//    nav_msgs::OccupancyGrid localOverGlobal(nav_msgs::OccupancyGrid input_map,
-//                                              const nav_msgs::OccupancyGrid& updating_map,
-//                                              const geometry_msgs::TransformStamped& transformStamped,
-//                                              double patch_width,
-//                                              double patch_height);
+    grid_map::GridMap getExclusionSubmap(const grid_map::GridMap& map,
+                                         const grid_map::Position& center,
+                                         const grid_map::Length& size);
 
-//    nav_msgs::OccupancyGrid filterLocal(const nav_msgs::OccupancyGrid& global_map,
-//                                            const nav_msgs::OccupancyGrid& local_map,
-//                                            const geometry_msgs::TransformStamped& transformStamped,
-//                                            double patch_width,
-//                                            double patch_height);
-
-//    nav_msgs::OccupancyGrid bFilterA(const nav_msgs::OccupancyGrid& input_map,
-//                                               const nav_msgs::OccupancyGrid& filter_map,
-//                                               double patch_width,
-//                                               double patch_height);
-
-//    nav_msgs::OccupancyGrid bOverA(const nav_msgs::OccupancyGrid& map_a,
-//                                   const nav_msgs::OccupancyGrid& map_b,
-//                                   const geometry_msgs::TransformStamped& transformStamped,
-//                                   double patch_width,
-//                                   double patch_height);
+    void filterMap(grid_map::GridMap& map,
+                   const nav_msgs::OccupancyGrid& occupancyGrid,
+                   const grid_map::GridMap& exclusionSubmap,
+                   const Eigen::Isometry3d transform);
 
     YAML::Node _config;
 
+    grid_map::GridMap _grid_map, _exclusion_submap;
+    grid_map::Position _map_origin, _sensor_origin;
+
     ros::NodeHandle _nh, _nhpr;
     ros::Subscriber _local_map_sub; // _global_map_sub,
-    ros::Publisher _world_map_pub, _transformed_local_pub;
+    ros::Publisher _transformed_local_pub, _blind_zone_pub;
     tf2_ros::Buffer _tfBuffer;
     tf2_ros::TransformListener _tfListener;
 
     nav_msgs::OccupancyGrid::ConstPtr _latest_local_map; // _latest_global_map
-    nav_msgs::OccupancyGrid _world_map, _transformed_local_map; // _map_filter, _global_map_temp, _global_map_filtered;
-    double _map_width, _map_height, _world_map_width, _world_map_height, _blind_zone_width, _blind_zone_height;  // Width of the world map and the exclusion zone in meters
+    double _blind_zone_width, _blind_zone_height;  // Width of the world map and the exclusion zone in meters
 };
 
 #endif // MAP_TRANSFORMER_H

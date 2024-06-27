@@ -4,61 +4,34 @@
 MapTransformer::MapTransformer(double map_width,
                                double map_height,
                                double blind_zone_width,
-                               double blind_zone_height,
-                               double world_map_width,
-                               double world_map_height)
+                               double blind_zone_height)
 :
     _tfBuffer(),
     _tfListener(_tfBuffer),
-    _map_width(map_width),
-    _map_height(map_height),
-    _world_map_width(world_map_width),
-    _world_map_height(world_map_height),
     _blind_zone_width(blind_zone_width),
-    _blind_zone_height(blind_zone_height)
+    _blind_zone_height(blind_zone_height),
+    _map_origin(0.0, 0.0)
 {
+
+    _grid_map.add("obstacle_layer");
+    _grid_map.setPosition(_map_origin);
+    _grid_map.setFrameId("map");
+    _grid_map.setGeometry(grid_map::Length(map_width, map_height), 0.01);
 
 //    _global_map_sub = _nh.subscribe("/global_map", 1, &MapTransformer::globalMapCallback, this);
     _local_map_sub = _nh.subscribe("/local_map", 1, &MapTransformer::localMapCallback, this);
 
-    _world_map_pub = _nh.advertise<nav_msgs::OccupancyGrid>("/filtered_world_map", 1);
     _transformed_local_pub = _nh.advertise<nav_msgs::OccupancyGrid>("/filtered_local_map", 1);
-
-    auto local_map = ros::topic::waitForMessage<nav_msgs::OccupancyGrid>("/local_map", _nh);
-
-    // initialize world map
-    _world_map.header.frame_id = "map";
-
-    _world_map.info.origin.position.x = - world_map_width / 2;
-    _world_map.info.origin.position.y = - world_map_height / 2;
-    _world_map.info.origin.position.z = 0;
-    _world_map.info.origin.orientation.x = 0;
-    _world_map.info.origin.orientation.y = 0;
-    _world_map.info.origin.orientation.z = 0;
-    _world_map.info.origin.orientation.w = 1;
-
-    _world_map.info.resolution = local_map->info.resolution; //local_map->info.resolution;
-
-    _world_map.info.width = static_cast<unsigned int>(world_map_width / _world_map.info.resolution);
-    _world_map.info.height = static_cast<unsigned int>(world_map_width / _world_map.info.resolution);
-    _world_map.data.resize(_world_map.info.width * _world_map.info.height, -1);
+    _blind_zone_pub = _nh.advertise<nav_msgs::OccupancyGrid>("/blind_zone", 1);
 
 
-    _transformed_local_map.header.frame_id = "base_link";
+    // Create the exclusion submap
+    grid_map::Length exclusion_size(_blind_zone_width, _blind_zone_height);
+    grid_map::Position map_center = _grid_map.getPosition();
+    grid_map::Index submapStartIndex;
+    bool isSuccess;
 
-    _transformed_local_map.info.origin.position.x = - _map_width / 2;
-    _transformed_local_map.info.origin.position.y = - _map_height / 2;
-    _transformed_local_map.info.origin.position.z = 0;
-    _transformed_local_map.info.origin.orientation.x = 0;
-    _transformed_local_map.info.origin.orientation.y = 0;
-    _transformed_local_map.info.origin.orientation.z = 0;
-    _transformed_local_map.info.origin.orientation.w = 1;
-
-    _transformed_local_map.info.resolution = 0.01; //local_map->info.resolution;
-
-    _transformed_local_map.info.width = static_cast<unsigned int>(_map_width / _transformed_local_map.info.resolution);
-    _transformed_local_map.info.height = static_cast<unsigned int>(_map_height / _transformed_local_map.info.resolution);
-    _transformed_local_map.data.resize(_transformed_local_map.info.width * _transformed_local_map.info.height, -1);
+    _exclusion_submap = _grid_map.getSubmap(map_center, exclusion_size, submapStartIndex, isSuccess);
 
 
 
@@ -68,11 +41,6 @@ void MapTransformer::localMapCallback(const nav_msgs::OccupancyGrid::ConstPtr& m
 {
     _latest_local_map = map_msg;
 }
-
-//void MapTransformer::globalMapCallback(const nav_msgs::OccupancyGrid::ConstPtr& map_msg) {
-//    _latest_global_map = map_msg;
-//}
-
 
 void MapTransformer::update()
 {
@@ -86,19 +54,27 @@ void MapTransformer::update()
                                                                                                   _latest_local_map->header.stamp,
                                                                                                   ros::Duration(1.0));
 
-            // Convert the transform to a tf2::Transform
-            tf2::Transform base_link_T_map;
-            tf2::fromMsg(base_link_T_map_transform.transform, base_link_T_map);
 
-            // transform the latest local map to the /map frame provided from the SLAM
-            // filter the blind zone
-            _world_map = transformAndFilter(_world_map, *_latest_local_map, base_link_T_map, _blind_zone_width, _blind_zone_height);
+            auto base_link_T_map =  tf2::transformToEigen(base_link_T_map_transform);
 
-            // transfrom the world map to the local frame /base_link
-            _transformed_local_map = transformAndFilter(_transformed_local_map, _world_map, base_link_T_map.inverse(), 0.0, 0.0);
+            // move world map to follow the base_link of the robot
+            grid_map::Position base_link_T_map_position(base_link_T_map.inverse().translation().x(), base_link_T_map.inverse().translation().y());
 
-            _world_map_pub.publish(_world_map);
-            _transformed_local_pub.publish(_transformed_local_map);
+            _grid_map.move(base_link_T_map_position);
+            _exclusion_submap.move(base_link_T_map_position);
+
+            // filter the world map with the exclusion submap
+            filterMap(_grid_map, *_latest_local_map, _exclusion_submap, base_link_T_map);
+
+            // publish grid_maps to ros occupancy maps
+            nav_msgs::OccupancyGrid world_occupancy_grid_map;
+            grid_map::GridMapRosConverter::toOccupancyGrid(_grid_map, "obstacle_layer", -100, 100, world_occupancy_grid_map);
+            _transformed_local_pub.publish(world_occupancy_grid_map);
+
+            nav_msgs::OccupancyGrid exclusion_zone_occupancy_grid_map;
+            grid_map::GridMapRosConverter::toOccupancyGrid(_exclusion_submap, "obstacle_layer", -100, 100, exclusion_zone_occupancy_grid_map);
+            _blind_zone_pub.publish(exclusion_zone_occupancy_grid_map);
+
         }
         catch (tf2::TransformException &ex)
         {
@@ -107,351 +83,39 @@ void MapTransformer::update()
     }
 }
 
-nav_msgs::OccupancyGrid MapTransformer::transformAndFilter(nav_msgs::OccupancyGrid map_a,
-                                             const nav_msgs::OccupancyGrid& map_b,
-                                             const tf2::Transform& b_T_a,
-                                             double patch_width,
-                                             double patch_height)
+void MapTransformer::filterMap(grid_map::GridMap& map,
+                               const nav_msgs::OccupancyGrid& occupancyGrid,
+                               const grid_map::GridMap& exclusionSubmap,
+                               const Eigen::Isometry3d transform)
 {
-    // transform map_b into map_a coordinate, update map_a with the obtained data except the blind zone
-    nav_msgs::OccupancyGrid map_a_updated = map_a;
+    // Loop through the occupancy grid and update the grid map
 
-    // Define the center of the square in the base_link frame (assuming the center of the map)
-    unsigned int center_x = map_b.info.width / 2;
-    unsigned int center_y = map_b.info.height / 2;
-
-    unsigned int patch_width_cells = static_cast<unsigned int>(patch_width / map_b.info.resolution);
-    unsigned int patch_height_cells = static_cast<unsigned int>(patch_height / map_b.info.resolution);
-
-    // Calculate the bounds of the patch
-    int exclude_start_x = static_cast<int>(center_x) - static_cast<int>(patch_width_cells / 2);
-    int exclude_start_y = static_cast<int>(center_y) - static_cast<int>(patch_height_cells / 2);
-    int exclude_end_x = static_cast<int>(center_x) + static_cast<int>(patch_width_cells / 2);
-    int exclude_end_y = static_cast<int>(center_y) + static_cast<int>(patch_height_cells / 2);
-
-    // Iterate over the local map data and update the global map
-    for (unsigned int b_y = 0; b_y < map_b.info.height; b_y++)
+    for (int i = 0; i < occupancyGrid.info.width; ++i)
     {
-        for (unsigned int b_x = 0; b_x < map_b.info.width; b_x++)
+        for (int j = 0; j < occupancyGrid.info.height; ++j)
         {
-            // Exclude the blind zone from the update
-            if (b_x >= exclude_start_x && b_x < exclude_end_x && b_y >= exclude_start_y && b_y < exclude_end_y)
+            // Calculate the real-world position of the cell
+            double cellX = occupancyGrid.info.origin.position.x + i * occupancyGrid.info.resolution;
+            double cellY = occupancyGrid.info.origin.position.y + j * occupancyGrid.info.resolution;
+
+            // Transform to world map
+            grid_map::Position3 cellPosition3d(cellX, cellY, 0);
+            auto world_cell_position = transform.inverse() * cellPosition3d;
+
+            grid_map::Position cellPosition(world_cell_position.x(), world_cell_position.y());
+
+            if (map.isInside(cellPosition))
             {
-                continue;
+
+                if (exclusionSubmap.isInside(cellPosition))
+                {
+                    continue; // Skip this cell as it is within the exclusion submap
+                }
+
+                int occupancyValue = occupancyGrid.data[j * occupancyGrid.info.width + i];
+                map.atPosition("obstacle_layer", cellPosition) = occupancyValue;
             }
 
-            double w_x = b_x * map_b.info.resolution + map_b.info.origin.position.x;
-            double w_y = b_y * map_b.info.resolution + map_b.info.origin.position.y;
-
-            // Create a point in the a_map center frame
-            tf2::Vector3 world_a_point(w_x, w_y, 0);
-
-            // Transform to the global map frame
-            tf2::Vector3 world_b_point = b_T_a.inverse() * world_a_point;
-
-            int a_x = static_cast<int>((world_b_point.x() - map_a.info.origin.position.x) / map_a.info.resolution);
-            int a_y = static_cast<int>((world_b_point.y() - map_a.info.origin.position.y) / map_a.info.resolution);
-
-
-            // Check if the coordinates are within the bounds of the global map
-            if (a_x >= 0 && a_x < static_cast<int>(map_a.info.width) && a_y >= 0 && a_y < static_cast<int>(map_a.info.height))
-            {
-                int b_index = b_x + b_y * map_b.info.width;
-                int a_index = a_x + a_y * map_a.info.width;
-                map_a_updated.data[a_index] = map_b.data[b_index];
-            }
-         }
+        }
     }
-
-    return map_a_updated;
 }
-
-//nav_msgs::OccupancyGrid MapTransformer::additiveUpdate(nav_msgs::OccupancyGrid input_map,
-//                                                       const nav_msgs::OccupancyGrid& updating_map,
-//                                                       const geometry_msgs::TransformStamped& transformStamped,
-//                                                       double patch_width,
-//                                                       double patch_height)
-//{
-
-
-//    // Convert the transform to a tf2::Transform
-//    tf2::Transform tf_transform;
-//    tf2::fromMsg(transformStamped.transform, tf_transform);
-
-//    // Define the center of the square in the base_link frame (assuming the center of the map)
-//    unsigned int center_x = input_map.info.width / 2;
-//    unsigned int center_y = input_map.info.height / 2;
-
-//    unsigned int patch_width_cells = static_cast<unsigned int>(patch_width / input_map.info.resolution);
-//    unsigned int patch_height_cells = static_cast<unsigned int>(patch_height / input_map.info.resolution);
-
-//    // Calculate the bounds of the square
-//    int start_x = static_cast<int>(center_x) - static_cast<int>(patch_width_cells / 2);
-//    int start_y = static_cast<int>(center_y) - static_cast<int>(patch_height_cells / 2);
-//    int end_x = static_cast<int>(center_x) + static_cast<int>(patch_width_cells / 2);
-//    int end_y = static_cast<int>(center_y) + static_cast<int>(patch_height_cells / 2);
-
-//    // Iterate over the transformed map data and fill it based on the original map
-//    for (unsigned int y = start_y; y < end_y; y++)
-//    {
-//        for (unsigned int x = start_x; x < end_x; x++)
-//        {
-//            // Calculate world coordinates of the transformed map cell
-//            double world_x = x * input_map.info.resolution + input_map.info.origin.position.x;
-//            double world_y = y * input_map.info.resolution + input_map.info.origin.position.y;
-
-//            // Create a point in the base_link frame
-//            tf2::Vector3 base_link_point(world_x, world_y, 0);
-
-//            // Transform to the map frame
-//            tf2::Vector3 map_point = tf_transform.inverse() * base_link_point;
-
-//            // Convert world coordinates to map coordinates
-//            int mx = static_cast<int>((map_point.x() - updating_map.info.origin.position.x) / updating_map.info.resolution);
-//            int my = static_cast<int>((map_point.y() - updating_map.info.origin.position.y) / updating_map.info.resolution);
-
-//            // Check if the coordinates are within the bounds of the original map
-//            if (mx >= 0 && mx < static_cast<int>(updating_map.info.width) && my >= 0 && my < static_cast<int>(updating_map.info.height))
-//            {
-//                int map_index = mx + my * updating_map.info.width;
-//                int transformed_index = x + y * input_map.info.width;
-
-//                input_map.data[transformed_index] = updating_map.data[map_index];
-//            }
-//        }
-//    }
-
-//    return input_map;
-//}
-
-//nav_msgs::OccupancyGrid MapTransformer::subtractiveUpdate(nav_msgs::OccupancyGrid input_map,
-//                                                          const nav_msgs::OccupancyGrid& updating_map,
-//                                                          const geometry_msgs::TransformStamped& transformStamped,
-//                                                          double patch_width,
-//                                                          double patch_height)
-//{
-//    // Convert the transform to a tf2::Transform
-//    tf2::Transform tf_transform;
-//    tf2::fromMsg(transformStamped.transform, tf_transform);
-
-//    // Define the center of the square in the base_link frame (assuming the center of the map)
-//    unsigned int center_x = input_map.info.width / 2;
-//    unsigned int center_y = input_map.info.height / 2;
-
-//    unsigned int patch_width_cells = static_cast<unsigned int>(patch_width / input_map.info.resolution);
-//    unsigned int patch_height_cells = static_cast<unsigned int>(patch_height / input_map.info.resolution);
-
-//    // Calculate the bounds of the patch
-//    int start_x = static_cast<int>(center_x) - static_cast<int>(patch_width_cells / 2);
-//    int start_y = static_cast<int>(center_y) - static_cast<int>(patch_height_cells / 2);
-//    int end_x = static_cast<int>(center_x) + static_cast<int>(patch_width_cells / 2);
-//    int end_y = static_cast<int>(center_y) + static_cast<int>(patch_height_cells / 2);
-
-//    // Iterate over the transformed map data
-//    for (unsigned int y = 0; y < input_map.info.height; y++)
-//    {
-//        for (unsigned int x = 0; x < input_map.info.width; x++)
-//        {
-//            // Skip the square area
-//            if (x >= start_x && x < end_x && y >= start_y && y < end_y)
-//            {
-//                continue;
-//            }
-
-//            // Calculate world coordinates of the transformed map cell
-//            double world_x = x * input_map.info.resolution + input_map.info.origin.position.x;
-//            double world_y = y * input_map.info.resolution + input_map.info.origin.position.y;
-
-//            // Create a point in the base_link frame
-//            tf2::Vector3 base_link_point(world_x, world_y, 0);
-
-//            // Transform to the map frame
-//            tf2::Vector3 map_point = tf_transform.inverse() * base_link_point;
-
-//            // Convert world coordinates to map coordinates
-//            int mx = static_cast<int>((map_point.x() - updating_map.info.origin.position.x) / updating_map.info.resolution);
-//            int my = static_cast<int>((map_point.y() - updating_map.info.origin.position.y) / updating_map.info.resolution);
-
-//            // Check if the coordinates are within the bounds of the original map
-//            if (mx >= 0 && mx < static_cast<int>(updating_map.info.width) && my >= 0 && my < static_cast<int>(updating_map.info.height))
-//            {
-//                int map_index = mx + my * updating_map.info.width;
-//                int transformed_index = x + y * input_map.info.width;
-
-//                input_map.data[transformed_index] = updating_map.data[map_index];
-//            }
-//        }
-//    }
-
-//    return input_map;
-//}
-
-//nav_msgs::OccupancyGrid MapTransformer::bOverA(const nav_msgs::OccupancyGrid& map_a,
-//                                               const nav_msgs::OccupancyGrid& map_b,
-//                                               const geometry_msgs::TransformStamped& transformStamped,
-//                                               double patch_width,
-//                                               double patch_height)
-//{
-
-//    nav_msgs::OccupancyGrid map_a_updated = map_a;
-
-//    // Define the center of the square in the base_link frame (assuming the center of the map)
-//    unsigned int center_x = map_b.info.width / 2;
-//    unsigned int center_y = map_b.info.height / 2;
-
-//    unsigned int patch_width_cells = static_cast<unsigned int>(patch_width / map_b.info.resolution);
-//    unsigned int patch_height_cells = static_cast<unsigned int>(patch_height / map_b.info.resolution);
-
-//    // Calculate the bounds of the patch
-//    int exclude_start_x = static_cast<int>(center_x) - static_cast<int>(patch_width_cells / 2);
-//    int exclude_start_y = static_cast<int>(center_y) - static_cast<int>(patch_height_cells / 2);
-//    int exclude_end_x = static_cast<int>(center_x) + static_cast<int>(patch_width_cells / 2);
-//    int exclude_end_y = static_cast<int>(center_y) + static_cast<int>(patch_height_cells / 2);
-
-//    // Convert the transform to a tf2::Transform
-//    tf2::Transform tf_transform;
-//    tf2::fromMsg(transformStamped.transform, tf_transform);
-
-//    // Iterate over the local map data and update the global map
-//    for (unsigned int b_y = 0; b_y < map_b.info.height; b_y++)
-//    {
-//        for (unsigned int b_x = 0; b_x < map_b.info.width; b_x++)
-//        {
-
-//            if (b_x >= exclude_start_x && b_x < exclude_end_x && b_y >= exclude_start_y && b_y < exclude_end_y)
-//            {
-//                continue;
-//            }
-
-//            double w_x = b_x * map_b.info.resolution + map_b.info.origin.position.x;
-//            double w_y = b_y * map_b.info.resolution + map_b.info.origin.position.y;
-
-////            // Create a point in the a_map center frame
-//            tf2::Vector3 world_a_point(w_x, w_y, 0);
-
-//            // Transform to the global map frame
-//            tf2::Vector3 world_b_point = tf_transform.inverse() * world_a_point;
-
-//            int a_x = static_cast<int>((world_b_point.x() - map_a.info.origin.position.x) / map_a.info.resolution);
-//            int a_y = static_cast<int>((world_b_point.y() - map_a.info.origin.position.y) / map_a.info.resolution);
-
-
-//            // Check if the coordinates are within the bounds of the global map
-//            if (a_x >= 0 && a_x < static_cast<int>(map_a.info.width) && a_y >= 0 && a_y < static_cast<int>(map_a.info.height))
-//            {
-//                int b_index = b_x + b_y * map_b.info.width;
-//                int a_index = a_x + a_y * map_a.info.width;
-//                map_a_updated.data[a_index] = map_b.data[b_index];
-//            }
-//         }
-//    }
-
-//    return map_a_updated;
-//}
-
-//nav_msgs::OccupancyGrid MapTransformer::filterLocal(const nav_msgs::OccupancyGrid& global_map,
-//                                                        const nav_msgs::OccupancyGrid& local_map,
-//                                                        const geometry_msgs::TransformStamped& transformStamped,
-//                                                        double patch_width,
-//                                                        double patch_height)
-//{
-
-//    nav_msgs::OccupancyGrid updated_global_map = global_map;
-
-//    // Define the center of the square in the base_link frame (assuming the center of the map)
-//    unsigned int center_x = local_map.info.width / 2;
-//    unsigned int center_y = local_map.info.height / 2;
-
-//    unsigned int patch_width_cells = static_cast<unsigned int>(patch_width / local_map.info.resolution);
-//    unsigned int patch_height_cells = static_cast<unsigned int>(patch_height / local_map.info.resolution);
-
-//    // Calculate the bounds of the patch
-//    int exclude_start_x = static_cast<int>(center_x) - static_cast<int>(patch_width_cells / 2);
-//    int exclude_start_y = static_cast<int>(center_y) - static_cast<int>(patch_height_cells / 2);
-//    int exclude_end_x = static_cast<int>(center_x) + static_cast<int>(patch_width_cells / 2);
-//    int exclude_end_y = static_cast<int>(center_y) + static_cast<int>(patch_height_cells / 2);
-
-//    // Convert the transform to a tf2::Transform
-//    tf2::Transform tf_transform;
-//    tf2::fromMsg(transformStamped.transform, tf_transform);
-
-//    // Iterate over the local map data and update the global map
-//    for (unsigned int y = 0; y < local_map.info.height; y++)
-//    {
-//        for (unsigned int x = 0; x < local_map.info.width; x++)
-//        {
-
-//            if (x >= exclude_start_x && x < exclude_end_x && y >= exclude_start_y && y < exclude_end_y)
-//            {
-//                continue;
-//            }
-
-//            // Calculate world coordinates of the local map cell
-//            double wx = x * local_map.info.resolution + local_map.info.origin.position.x;
-//            double wy = y * local_map.info.resolution + local_map.info.origin.position.y;
-
-//            // Create a point in the base_link frame
-//            tf2::Vector3 local_map_point(wx, wy, 0);
-
-//            // Transform to the global map frame
-//            tf2::Vector3 global_map_point = tf_transform * local_map_point;
-
-//            // Convert world coordinates to global map coordinates
-//            int gx = static_cast<int>((global_map_point.x() - global_map.info.origin.position.x) / global_map.info.resolution);
-//            int gy = static_cast<int>((global_map_point.y() - global_map.info.origin.position.y) / global_map.info.resolution);
-
-//            // Check if the coordinates are within the bounds of the global map
-//            if (gx >= 0 && gx < static_cast<int>(global_map.info.width) && gy >= 0 && gy < static_cast<int>(global_map.info.height))
-//            {
-//                int global_index = gx + gy * global_map.info.width;
-//                int local_index = x + y * local_map.info.width;
-//                updated_global_map.data[global_index] = local_map.data[local_index];
-
-//            }
-//        }
-//    }
-
-//    return updated_global_map;
-//}
-
-//nav_msgs::OccupancyGrid MapTransformer::bFilterA(const nav_msgs::OccupancyGrid &map_a,
-//                                                           const nav_msgs::OccupancyGrid &map_b,
-//                                                           double patch_width,
-//                                                           double patch_height)
-//{
-//    nav_msgs::OccupancyGrid filtered_map = map_a;
-
-//    // Define the center of the square in the base_link frame (assuming the center of the map)
-//    unsigned int center_x = map_a.info.width / 2;
-//    unsigned int center_y = map_a.info.height / 2;
-
-//    unsigned int patch_width_cells = static_cast<unsigned int>(patch_width / map_a.info.resolution);
-//    unsigned int patch_height_cells = static_cast<unsigned int>(patch_height / map_a.info.resolution);
-
-//    // Calculate the bounds of the patch
-//    int exclude_start_x = static_cast<int>(center_x) - static_cast<int>(patch_width_cells / 2);
-//    int exclude_start_y = static_cast<int>(center_y) - static_cast<int>(patch_height_cells / 2);
-//    int exclude_end_x = static_cast<int>(center_x) + static_cast<int>(patch_width_cells / 2);
-//    int exclude_end_y = static_cast<int>(center_y) + static_cast<int>(patch_height_cells / 2);
-
-//    for (unsigned int y = 0; y < map_a.info.height; y++)
-//    {
-//        for (unsigned int x = 0; x < map_a.info.width; x++)
-//        {
-//            int index = x + y * map_a.info.width;
-//            if (x >= exclude_start_x && x < exclude_end_x && y >= exclude_start_y && y < exclude_end_y)
-//            {
-//                continue;
-//            }
-//            else
-//            {
-//                if (map_b.data[index] < 50)
-//                {
-//                    filtered_map.data[index] = map_b.data[index];
-//                }
-//            }
-//        }
-//    }
-
-//    return filtered_map;
-//}

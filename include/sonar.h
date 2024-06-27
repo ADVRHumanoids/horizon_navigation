@@ -57,11 +57,11 @@ private:
                      SonarUpdate sonar);
 
     grid_map::GridMap _map;
+    grid_map::Position _map_origin, _sensor_origin;
 
     std::map<std::string, Sonar> _sensors;
     std::map<std::string, SonarUpdate> _sensor_updates;
 
-    grid_map::Position _map_origin, _sensor_origin;
 
 
 

@@ -5,7 +5,7 @@ int main(int argc, char** argv)
     ros::init(argc, argv, "map_transformer_node");
     ros::NodeHandle nh;
 
-    double map_width, map_height, world_map_width, world_map_height, blind_zone_width, blind_zone_height;
+    double map_width, map_height, blind_zone_width, blind_zone_height;
     int rate;
 
     ros::param::param<int>("~rate", rate, 100);
@@ -23,21 +23,13 @@ int main(int argc, char** argv)
     ros::param::param<double>("~blind_zone_height", blind_zone_height, 1);
     ROS_INFO("Blind zone height: %f", blind_zone_height);
 
-    ros::param::param<double>("~world_map_width", world_map_width, 10);
-    ROS_INFO("World map width: %f", world_map_width);
-
-    ros::param::param<double>("~world_map_height", world_map_height, 10);
-    ROS_INFO("World map height: %f", world_map_height);
-
     ros::Rate r(rate);
 
 
     auto mt = MapTransformer(map_width,
                              map_height,
                              blind_zone_width,
-                             blind_zone_height,
-                             world_map_width,
-                             world_map_height);
+                             blind_zone_height);
 
     while(ros::ok())
     {
