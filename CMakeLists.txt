@@ -46,14 +46,14 @@ target_include_directories(${LIBRARY_TARGET_NAME}
     ${EIGEN3_INCLUDE_DIR})
 
 add_executable(obstacle_generator_node
-    src/obstacle_generator_node.cpp)
+    src/ros/obstacle_generator_node.cpp)
 
 target_link_libraries(obstacle_generator_node
     horizon_navigation
     ${catkin_LIBRARIES})
 
 add_executable(map_transformer_node
-    src/map_transformer_node.cpp)
+    src/ros/map_transformer_node.cpp)
 
 target_link_libraries(map_transformer_node
     horizon_navigation

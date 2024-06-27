@@ -1,3 +1,6 @@
+#ifndef SONAR_ROS_H
+#define SONAR_ROS_H
+
 #include <ros/ros.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <geometry_msgs/TransformStamped.h>
@@ -8,8 +11,6 @@
 #include <tf2_eigen/tf2_eigen.h>
 #include <yaml-cpp/yaml.h>
 #include <sonar.h>
-
-using namespace grid_map;
 
 
 class SonarRos
@@ -49,3 +50,5 @@ private:
     std::vector<std::string> _sensor_topic_names;
 
 };
+
+#endif

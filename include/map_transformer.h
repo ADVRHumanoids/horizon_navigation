@@ -20,45 +20,39 @@ class MapTransformer
 {
 public:
 
+    typedef std::shared_ptr<MapTransformer> Ptr;
+
     MapTransformer(double map_width,
                    double map_height,
                    double blind_zone_width,
-                   double blind_zone_height);
+                   double blind_zone_height,
+                   std::string map_layer_name);
 
-    void update();
+    void update(nav_msgs::OccupancyGrid occupancy_grid,
+                const Eigen::Isometry3d transform);
+
+
+    grid_map::GridMap getMap();
+    grid_map::GridMap getBlindZone();
 
 private:
-
-    void globalMapCallback(const nav_msgs::OccupancyGrid::ConstPtr& map_msg);
-    void localMapCallback(const nav_msgs::OccupancyGrid::ConstPtr& map_msg);
-    nav_msgs::OccupancyGrid transformAndFilter(nav_msgs::OccupancyGrid a_map,
-                                 const nav_msgs::OccupancyGrid& b_map,
-                                 const tf2::Transform& transformStamped,
-                                 double patch_width,
-                                 double patch_height);
 
     grid_map::GridMap getExclusionSubmap(const grid_map::GridMap& map,
                                          const grid_map::Position& center,
                                          const grid_map::Length& size);
 
     void filterMap(grid_map::GridMap& map,
-                   const nav_msgs::OccupancyGrid& occupancyGrid,
+                   const nav_msgs::OccupancyGrid occupancyGrid,
                    const grid_map::GridMap& exclusionSubmap,
                    const Eigen::Isometry3d transform);
 
-    YAML::Node _config;
 
     grid_map::GridMap _grid_map, _exclusion_submap;
     grid_map::Position _map_origin, _sensor_origin;
 
-    ros::NodeHandle _nh, _nhpr;
-    ros::Subscriber _local_map_sub; // _global_map_sub,
-    ros::Publisher _transformed_local_pub, _blind_zone_pub;
-    tf2_ros::Buffer _tfBuffer;
-    tf2_ros::TransformListener _tfListener;
-
-    nav_msgs::OccupancyGrid::ConstPtr _latest_local_map; // _latest_global_map
     double _blind_zone_width, _blind_zone_height;  // Width of the world map and the exclusion zone in meters
+
+    std::string _map_layer_name;
 };
 
 #endif // MAP_TRANSFORMER_H

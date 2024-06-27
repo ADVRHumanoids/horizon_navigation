@@ -164,7 +164,7 @@ void SonarRos::spin()
                     auto map = _sonar_occupancy_map->getMap();
 
                     nav_msgs::OccupancyGrid message;
-                    GridMapRosConverter::toOccupancyGrid(map, "sonar_map", -100, 100, message);
+                    grid_map::GridMapRosConverter::toOccupancyGrid(map, "sonar_map", -100, 100, message);
                     _sonar_map_publisher.publish(message);
                 }
             }
