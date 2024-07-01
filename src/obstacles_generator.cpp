@@ -1,11 +1,10 @@
 #include <obstacles_generator.h>
 
-ObstacleGenerator::ObstacleGenerator(double grid_height, double grid_width, double grid_resolution, std::string topic_name):
+ObstacleGenerator::ObstacleGenerator(double grid_height, double grid_width, double grid_resolution, std::vector<std::string> topic_names):
     _grid_resolution(grid_resolution),
     _grid_origin(0, 0, 0),
     _min_angle(0.0),
-    _max_angle(0.0),
-    _occupancy_grid_topic_name(topic_name)
+    _max_angle(0.0)
 {
     _nh = ros::NodeHandle("");
     _nhpr = ros::NodeHandle("~");
@@ -13,12 +12,17 @@ ObstacleGenerator::ObstacleGenerator(double grid_height, double grid_width, doub
     _grid_height_cells = static_cast<int>(grid_height / _grid_resolution); // from meters to grid units
     _grid_width_cells = static_cast<int>(grid_width / _grid_resolution); // from meters to grid units
 
-    // initializing occupancy matrix
-    _occupancy_matrix.resize(_grid_height_cells, _grid_width_cells);
-    _occupancy_matrix.setZero();
-
     std::cout << "Grid height: " << _grid_height_cells << std::endl;
     std::cout << "Grid width: " << _grid_width_cells << std::endl;
+
+
+    // initializing occupancy matrices
+    for (auto topic_name : topic_names)
+    {
+        _occupancy_grid_topic_names.push_back(topic_name);
+        _occupancy_matrices[topic_name].resize(_grid_height_cells, _grid_width_cells);
+        _occupancy_matrices[topic_name].setZero();
+    }
 
     _radius_obstacle = _grid_resolution;
     _angle_threshold = _radius_obstacle;
@@ -38,7 +42,7 @@ ObstacleGenerator::ObstacleGenerator(double grid_height, double grid_width, doub
 
     // name of topic from which the occupancy map is taken
 //    std::string occupancy_grid_topic_name = "/map";
-    _init_subscribers(_occupancy_grid_topic_name);
+    _init_subscribers(_occupancy_grid_topic_names);
 
     _init_load_config();
 }
@@ -116,9 +120,19 @@ void ObstacleGenerator::_set_blindsight()
     _obstacles.erase(std::remove_if(_obstacles.begin(), _obstacles.end(), condition), _obstacles.end());
 }
 
-void ObstacleGenerator::_init_subscribers(std::string topic_name)
+void ObstacleGenerator::_init_subscribers(std::vector<std::string> topic_names)
 {
-    _occupancy_grid_subscriber = _nh.subscribe(topic_name, 10, &ObstacleGenerator::_occupancy_grid_callback, this);
+
+    for (const auto& topic_name : topic_names)
+    {
+
+        ros::Subscriber sub = _nh.subscribe<nav_msgs::OccupancyGrid>(topic_name,
+                                                                     10,
+                                                                     std::bind(&ObstacleGenerator::_occupancy_grid_callback, this, std::placeholders::_1, topic_name)
+                                                                     );
+
+        _occupancy_grid_subscribers[topic_name] = sub;
+    }
 }
 
 void ObstacleGenerator::_init_publishers()
@@ -208,7 +222,10 @@ void ObstacleGenerator::_visualize_obstacles_viz()
 void ObstacleGenerator::_update()
 {
     // compute obstacles from occupancy grid coming from laserscan
-    _obstacles_from_occupacy_grid();
+    for (auto occupancy_matrix : _occupancy_matrices)
+    {
+        _obstacles_from_occupacy_grid(occupancy_matrix.second);
+    }
 
     // remove blind spot given by setBlindAngle
     _set_blindsight();
@@ -227,7 +244,7 @@ void ObstacleGenerator::_update()
 
 }
 
-void ObstacleGenerator::_obstacles_from_occupacy_grid()
+void ObstacleGenerator::_obstacles_from_occupacy_grid(const OccupancyMatrix occupancy_matrix)
 {
     // Iterating over the matrix
 //    _obstacle_counter = 0;
@@ -236,7 +253,7 @@ void ObstacleGenerator::_obstacles_from_occupacy_grid()
     {
         for (int elem_h = 0; elem_h < _grid_height_cells; ++elem_h)
         {
-            if(_occupancy_matrix(elem_h, elem_w) > 0)
+            if(occupancy_matrix(elem_h, elem_w) == 100)
             {
                // origin is at the center of the grid
                double grid_origin_x = (_grid_height_cells * _grid_resolution) / 2;
@@ -416,7 +433,7 @@ std::vector<Obstacle::Ptr> ObstacleGenerator::_sort_angle_distance()
 
 }
 
-void ObstacleGenerator::_occupancy_grid_callback(const nav_msgs::OccupancyGrid::ConstPtr& msg)
+void ObstacleGenerator::_occupancy_grid_callback(const nav_msgs::OccupancyGrid::ConstPtr& msg, const std::string& topic_name)
 {
 
     // Extract grid data from the message
@@ -433,7 +450,7 @@ void ObstacleGenerator::_occupancy_grid_callback(const nav_msgs::OccupancyGrid::
         for (int x = 0; x < width; ++x)
         {
             int index = y * width + x;
-            _occupancy_matrix(x, y) = msg->data[index];
+            _occupancy_matrices[topic_name](x, y) = msg->data[index];
         }
     }
 }

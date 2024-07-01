@@ -28,7 +28,7 @@ public:
     typedef Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> OccupancyMatrix;
 
 
-    ObstacleGenerator(double grid_height, double grid_width, double grid_resolution, std::string topic_name = "/map");
+    ObstacleGenerator(double grid_height, double grid_width, double grid_resolution, std::vector<std::string> topic_name = {"/map"});
     typedef std::shared_ptr<ObstacleGenerator> Ptr;
 
     bool addObstacle(Obstacle::Ptr obstacle);
@@ -36,7 +36,7 @@ public:
     void run();
 
     void add_obstacle_viz(int id, Eigen::Vector3d origin, Eigen::Vector3d radius, std_msgs::ColorRGBA color);
-    void _obstacles_from_occupacy_grid();
+    void _obstacles_from_occupacy_grid(const OccupancyMatrix occupancy_matrix);
 
     std::vector<Obstacle::Ptr> getObstacles();
 
@@ -53,8 +53,8 @@ public:
 
 private:
 
-    void _occupancy_grid_callback(const nav_msgs::OccupancyGrid::ConstPtr& msg);
-    void _init_subscribers(std::string topic_name);
+    void _occupancy_grid_callback(const nav_msgs::OccupancyGrid::ConstPtr& msg, const std::string& matrix);
+    void _init_subscribers(std::vector<std::string> topic_name);
     void _init_publishers();
     void _init_load_config();
 
@@ -71,7 +71,7 @@ private:
 
 
 
-    OccupancyMatrix _occupancy_matrix;
+    std::map<std::string, OccupancyMatrix> _occupancy_matrices;
     int _grid_height_cells;
     int _grid_width_cells;
     double _grid_resolution;
@@ -84,7 +84,7 @@ private:
 
     double _min_angle, _max_angle;
 
-    std::string _occupancy_grid_topic_name;
+    std::vector<std::string> _occupancy_grid_topic_names;
 
     YAML::Node _config;
 
@@ -92,7 +92,7 @@ private:
     std::vector<Obstacle::Ptr> _obstacles;
 
     ros::NodeHandle _nh, _nhpr;
-    ros::Subscriber _occupancy_grid_subscriber;
+    std::map<std::string, ros::Subscriber> _occupancy_grid_subscribers;
     ros::Publisher _obstacle_publisher;
 
     visualization_msgs::MarkerArray _obstacle_markers;

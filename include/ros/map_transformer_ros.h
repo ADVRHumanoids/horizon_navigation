@@ -8,13 +8,16 @@
 #include <tf2_eigen/tf2_eigen.h>
 #include <map_transformer.h>
 
-class MapTransformerRos
+class MapTransformerROS
 {
 
 public:
 
-    MapTransformerRos(double rate);
+    MapTransformerROS(double rate);
     void spin();
+    bool update();
+    grid_map::GridMap getMap();
+    grid_map::GridMap getBlindZone();
 
 private:
 

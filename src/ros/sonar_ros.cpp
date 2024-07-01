@@ -1,6 +1,6 @@
-#include <ros/sonar_node.h>
+#include <ros/sonar_ros.h>
 
-SonarRos::SonarRos():
+SonarROS::SonarROS():
 //    _sensor_topic_names(sensor_topic_names),
     _tfBuffer(),
     _tfListener(_tfBuffer),
@@ -39,7 +39,7 @@ SonarRos::SonarRos():
     }
 }
 
-bool SonarRos::load_param_file()
+bool SonarROS::load_param_file()
 {
 
     std::string config_file_path;
@@ -98,22 +98,22 @@ bool SonarRos::load_param_file()
     return true;
 }
 
-void SonarRos::init_publishers()
+void SonarROS::init_publishers()
 {
     _sonar_map_publisher = _nh.advertise<nav_msgs::OccupancyGrid>("sonar_map", 1, true);
 }
 
-void SonarRos::init_subscribers()
+void SonarROS::init_subscribers()
 {
     for (auto sensor : _sensor_topics)
     {
-        _range_subs[sensor.first] = _nh.subscribe<sensor_msgs::Range>(sensor.second, 1000, &SonarRos::rangeCallback, this);
+        _range_subs[sensor.first] = _nh.subscribe<sensor_msgs::Range>(sensor.second, 1000, &SonarROS::rangeCallback, this);
         auto msg = ros::topic::waitForMessage<sensor_msgs::Range>(sensor.second, _nh);
         _range_msgs[sensor.first] = msg;
     }
 }
 
-void SonarRos::init_transform()
+void SonarROS::init_transform()
 {
     try
     {
@@ -136,38 +136,26 @@ void SonarRos::init_transform()
     }
 }
 
-void SonarRos::rangeCallback(const sensor_msgs::Range::ConstPtr& msg)
+void SonarROS::rangeCallback(const sensor_msgs::Range::ConstPtr& msg)
 {
     _range_msgs[msg->header.frame_id] = msg;
 }
 
-void SonarRos::spin()
+void SonarROS::spin()
 {
 
     while (_nh.ok())
     {
         try
         {
-            for (auto range_msg : _range_msgs)
-            {
-                if (range_msg.second)
-                {
-                    _sonar_occupancy_map->setData(range_msg.first,
-                                                  range_msg.second->header.frame_id,
-                                                  range_msg.second->range,
-                                                  range_msg.second->min_range,
-                                                  range_msg.second->max_range,
-                                                  range_msg.second->field_of_view);
+            update();
 
-                    _sonar_occupancy_map->update();
+            nav_msgs::OccupancyGrid message;
+            grid_map::GridMapRosConverter::toOccupancyGrid(_map, "sonar_map", -100, 100, message);
+            _sonar_map_publisher.publish(message);
 
-                    auto map = _sonar_occupancy_map->getMap();
-
-                    nav_msgs::OccupancyGrid message;
-                    grid_map::GridMapRosConverter::toOccupancyGrid(map, "sonar_map", -100, 100, message);
-                    _sonar_map_publisher.publish(message);
-                }
-            }
+            _rate.sleep();
+            ros::spinOnce();
 
         }
         catch (ros::Exception &ex)
@@ -175,25 +163,32 @@ void SonarRos::spin()
             ROS_WARN("%s", ex.what());
         }
 
-
-        _rate.sleep();
-        ros::spinOnce();
-
     }
 }
 
-int main(int argc, char** argv)
+void SonarROS::update()
 {
 
-    ros::init(argc, argv, "sonar_node");
+    for (auto range_msg : _range_msgs)
+    {
+        if (range_msg.second)
+        {
+            _sonar_occupancy_map->setData(range_msg.first,
+                                          range_msg.second->header.frame_id,
+                                          range_msg.second->range,
+                                          range_msg.second->min_range,
+                                          range_msg.second->max_range,
+                                          range_msg.second->field_of_view);
 
-//    std::vector<std::string> sonar_names;
+            _sonar_occupancy_map->update();
 
-//    sonar_names.push_back("/bosch_uss5/ultrasound_rr_sag");
-//    sonar_names.push_back("/bosch_uss5/ultrasound_rr_lat");
+            _map = _sonar_occupancy_map->getMap();
+        }
+    }
 
-    auto sr = SonarRos();
-    sr.spin();
-    return 0;
+}
 
+grid_map::GridMap SonarROS::getMap()
+{
+    return _map;
 }

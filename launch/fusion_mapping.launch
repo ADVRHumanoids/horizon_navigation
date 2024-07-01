@@ -47,19 +47,15 @@
 
     </node>
 
-    <node pkg="horizon_navigation" type="map_transformer_node" name="map_transformer_node" output="screen">
+    <node pkg="horizon_navigation" type="grid_map_fusion_node" name="grid_map_fusion_node" output="screen">
+        <param name="config_file" type="string" value="$(find horizon_navigation)/config/sonar_config.yaml"/>
         <remap from="global_map" to="map"/>
         <remap from="local_map" to="/costmap_node/costmap/costmap"/>
         <param name="rate" value="1000"/>
         <param name="map_width" value="6.0"/>
         <param name="map_height" value="6.0"/>
-        <param name="blind_zone_width" value="2.0"/>
-        <param name="blind_zone_height" value="2.0"/>
+        <param name="blind_zone_width" value="2.8"/>
+        <param name="blind_zone_height" value="2.8"/>
         <param name="grid_map_layer_name" value="obstacles"/>
     </node>
-
-    <node pkg="horizon_navigation" type="sonar_node" name="sonar_node" output="screen">
-        <param name="config_file" type="string" value="$(find horizon_navigation)/config/sonar_config.yaml"/>
-    </node>
-
 </launch>

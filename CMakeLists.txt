@@ -45,37 +45,71 @@ target_include_directories(${LIBRARY_TARGET_NAME}
     INTERFACE
     ${EIGEN3_INCLUDE_DIR})
 
-add_executable(obstacle_generator_node
-    src/ros/obstacle_generator_node.cpp)
+# =============================
 
-target_link_libraries(obstacle_generator_node
-    horizon_navigation
-    ${catkin_LIBRARIES})
+add_library(horizon_navigation_ros SHARED
+    src/ros/map_transformer_ros.cpp
+    src/ros/obstacle_generator_ros.cpp
+    src/ros/sonar_ros.cpp)
+
+target_link_libraries(horizon_navigation_ros
+    PUBLIC
+    ${catkin_LIBRARIES}
+    horizon_navigation)
+
+# =============================
+
+#add_executable(obstacle_generator_node
+#    src/ros/obstacle_generator_node.cpp)
+
+#target_link_libraries(obstacle_generator_node
+#    horizon_navigation_ros
+#    ${catkin_LIBRARIES})
+
+# =============================
 
 add_executable(map_transformer_node
-    src/ros/map_transformer_node.cpp)
+    src/ros/nodes/map_transformer_node.cpp)
 
 target_link_libraries(map_transformer_node
-    horizon_navigation
+    horizon_navigation_ros
     ${catkin_LIBRARIES})
+
+# =============================
 
 add_executable(sonar_node
-    src/ros/sonar_node.cpp)
+    src/ros/nodes/sonar_node.cpp)
 
 target_link_libraries(sonar_node
-    horizon_navigation
+    horizon_navigation_ros
     ${catkin_LIBRARIES})
 
-#include(GNUInstallDirs)
+# =============================
+
+add_executable(grid_map_fusion_node
+    src/ros/nodes/grid_map_fusion_node.cpp)
+
+target_link_libraries(grid_map_fusion_node
+    horizon_navigation_ros
+    ${catkin_LIBRARIES})
+
+# =============================
+
 install(TARGETS  ${LIBRARY_TARGET_NAME}
         EXPORT   ${LIBRARY_TARGET_NAME}
         LIBRARY  DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT shlib
         ARCHIVE  DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT lib
         RUNTIME  DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT bin)
 
-install(TARGETS obstacle_generator_node
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
+install(TARGETS  horizon_navigation_ros
+        EXPORT   horizon_navigation_ros
+        LIBRARY  DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT shlib
+        ARCHIVE  DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT lib
+        RUNTIME  DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT bin)
+
+#install(TARGETS obstacle_generator_node
+#  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+#)
 
 install(TARGETS map_transformer_node
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -84,5 +118,10 @@ install(TARGETS map_transformer_node
 install(TARGETS sonar_node
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
+
+install(TARGETS grid_map_fusion_node
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
 add_subdirectory(bindings/python/)
 # add_subdirectory(tests/)

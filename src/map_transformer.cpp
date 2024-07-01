@@ -41,6 +41,10 @@ void MapTransformer::update(const nav_msgs::OccupancyGrid occupancy_grid, const 
     // filter the world map with the exclusion submap
     filterMap(_grid_map, occupancy_grid, _exclusion_submap, transform);
 
+//    _grid_map.getTransformedMap(transform,
+//                                _map_layer_name,
+//                                "base_link");
+
 }
 
 grid_map::GridMap MapTransformer::getMap()

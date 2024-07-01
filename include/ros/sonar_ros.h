@@ -5,7 +5,6 @@
 #include <nav_msgs/OccupancyGrid.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <sensor_msgs/Range.h>
-#include <cmath>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_eigen/tf2_eigen.h>
@@ -13,13 +12,15 @@
 #include <sonar.h>
 
 
-class SonarRos
+class SonarROS
 {
 
 public:
 
-    SonarRos();
+    SonarROS();
     void spin();
+    void update();
+    grid_map::GridMap getMap();
 
 private:
 
@@ -48,6 +49,8 @@ private:
 
     YAML::Node _config;
     std::vector<std::string> _sensor_topic_names;
+
+    grid_map::GridMap _map;
 
 };
 

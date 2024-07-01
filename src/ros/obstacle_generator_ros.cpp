@@ -1,5 +1,4 @@
-#include <ros/ros.h>
-#include <obstacles_generator.h>
+#include <ros/obstacle_generator_ros.h>
 
 int main(int argc, char** argv)
 {

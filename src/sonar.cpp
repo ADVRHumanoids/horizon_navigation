@@ -9,7 +9,7 @@ SonarOccupancyMap::SonarOccupancyMap(Eigen::Vector2d map_origin): //= std::vecto
 
     _map.setPosition(_map_origin);
     _map.setFrameId("base_link");
-    _map.setGeometry(grid_map::Length(4.0, 4.0), 0.01);
+    _map.setGeometry(grid_map::Length(6.0, 6.0), 0.01);
 
     ROS_INFO("Created map with size %f x %f m (%i x %i cells).", _map.getLength().x(),
                                                                  _map.getLength().y(),
