@@ -51,7 +51,7 @@ void ObstacleGenerator::_init_load_config()
 {
     if(!_nhpr.hasParam("config"))
     {
-        std::cout << "Missing 'config' ros parameter for obstacle_generator node, using default \n" <<  std::endl;
+        std::cout << "Missing 'config' ros parameter for '" << _nhpr.getNamespace() << "' node, using default \n" <<  std::endl;
     }
     else
     {
@@ -93,31 +93,35 @@ void ObstacleGenerator::clearObstacles()
     _obstacles.clear();
 }
 
-void ObstacleGenerator::_set_blindsight()
+void ObstacleGenerator::setBlindsight()
 {
     // Remove elements that meet the condition
-    auto condition = [this](Obstacle::Ptr obstacle)
+    auto cone = [this](Obstacle::Ptr obstacle, double min_angle, double max_angle)
     {
         double angle = obstacle->getAngle();
-
-//        if (angle < 0) {
-//            angle += 2 * M_PI; // Adjust negative angles to positive equivalents
-//        }
-
-//        std::cout << angle << std::endl;
-//        std::cout << _min_angle << std::endl;
-//        std::cout << _max_angle << std::endl;
-
-//        if (_min_angle > _max_angle)
-//        {
-//            return angle <= _min_angle && angle <= _max_angle;
-//        }
-
-        return angle >= _min_angle && angle <= _max_angle;
+        return angle >= min_angle && angle <= max_angle;
     };
 
+    auto circle = [this](Obstacle::Ptr obstacle, Eigen::Vector2d origin, double radius)
+    {
+        Eigen::Vector2d obs_origin(obstacle->getOrigin().x(), obstacle->getOrigin().y());
+        double distance_squared = (obs_origin - origin).squaredNorm();
+        double radius_squared = radius * radius;
+
+        return distance_squared < radius_squared;
+    };
+
+    Eigen::Vector2d origin_blindzone(1.0, 0.0);
+    double radius_blindzone = 0.5;
+
     // remove obstacles in blind angle
-    _obstacles.erase(std::remove_if(_obstacles.begin(), _obstacles.end(), condition), _obstacles.end());
+    _obstacles.erase(std::remove_if(_obstacles.begin(),
+                                    _obstacles.end(),
+//                                    std::bind(circle, std::placeholders::_1, origin_blindzone, radius_blindzone)
+                                    std::bind(cone, std::placeholders::_1, _min_angle, _max_angle)
+                                    ),
+
+                     _obstacles.end());
 }
 
 void ObstacleGenerator::_init_subscribers(std::vector<std::string> topic_names)
@@ -140,7 +144,7 @@ void ObstacleGenerator::_init_publishers()
     _obstacle_publisher = _nh.advertise<visualization_msgs::MarkerArray>("obstacles", 10);
 }
 
-void ObstacleGenerator::add_obstacle_viz(int id, Eigen::Vector3d origin, Eigen::Vector3d radius, std_msgs::ColorRGBA color = _get_default_color()) //std_msgs::ColorRGBA color = _get_default_color()
+void ObstacleGenerator::addObstacleViz(int id, Eigen::Vector3d origin, Eigen::Vector3d radius, std_msgs::ColorRGBA color = _get_default_color()) //std_msgs::ColorRGBA color = _get_default_color()
 {
     auto obstacle_marker = visualization_msgs::Marker();
     obstacle_marker.header.frame_id = "base_link";
@@ -168,7 +172,7 @@ void ObstacleGenerator::add_obstacle_viz(int id, Eigen::Vector3d origin, Eigen::
 
 }
 
-void ObstacleGenerator::_visualize_obstacles_viz()
+void ObstacleGenerator::visualizeObstaclesViz()
 {
     //  visualize obstacle
         auto id_obs = 0;
@@ -208,7 +212,7 @@ void ObstacleGenerator::_visualize_obstacles_viz()
 //                std::cout << color_marker.g << std::endl;
 //                std::cout << color_marker.b << std::endl;
 
-                add_obstacle_viz(id_obs, obs->getOrigin(), obs->getRadius(), color_marker);
+                addObstacleViz(id_obs, obs->getOrigin(), obs->getRadius(), color_marker);
                 id_obs++;
             }
         }
@@ -224,11 +228,11 @@ void ObstacleGenerator::_update()
     // compute obstacles from occupancy grid coming from laserscan
     for (auto occupancy_matrix : _occupancy_matrices)
     {
-        _obstacles_from_occupacy_grid(occupancy_matrix.second);
+        obstaclesFromOccupacyGrid(occupancy_matrix.second);
     }
 
     // remove blind spot given by setBlindAngle
-    _set_blindsight();
+    setBlindsight();
 
     // sort obstacles by angle: the closest for each obstacle with the same angle from the origin
     _obstacles = _sort_angle_distance();
@@ -240,11 +244,11 @@ void ObstacleGenerator::_update()
 //        return _min_distance(a, b);
 //    });
 
-    _visualize_obstacles_viz();
+    visualizeObstaclesViz();
 
 }
 
-void ObstacleGenerator::_obstacles_from_occupacy_grid(const OccupancyMatrix occupancy_matrix)
+void ObstacleGenerator::obstaclesFromOccupacyGrid(const OccupancyMatrix occupancy_matrix)
 {
     // Iterating over the matrix
 //    _obstacle_counter = 0;
@@ -440,16 +444,21 @@ void ObstacleGenerator::_occupancy_grid_callback(const nav_msgs::OccupancyGrid::
     int width = msg->info.width;
     int height = msg->info.height;
 
-    if (width != _grid_width_cells || height != _grid_height_cells) {
-        ROS_ERROR("Received grid (%d x %d) size does not match expected size (%d x %d). Skipping processing.", width, height, _grid_width_cells, _grid_height_cells);
+    if (width < _grid_width_cells || height < _grid_height_cells) {
+        ROS_INFO("Received grid (%d x %d) is smaller than the expected size (%d x %d). Skipping processing.", width, height, _grid_width_cells, _grid_height_cells);
+        return;
     }
 
-    // Copy grid data into the matrix
-    for (int y = 0; y < height; ++y)
+    // Calculate the starting indices to center the sub-grid
+    int start_x = (width - _grid_width_cells) / 2;
+    int start_y = (height - _grid_height_cells) / 2;
+
+    // Copy grid data into the matrix, only within the specified height and width
+    for (int y = 0; y < _grid_height_cells; ++y)
     {
-        for (int x = 0; x < width; ++x)
+        for (int x = 0; x < _grid_width_cells; ++x)
         {
-            int index = y * width + x;
+            int index = (start_y + y) * width + (start_x + x);
             _occupancy_matrices[topic_name](x, y) = msg->data[index];
         }
     }

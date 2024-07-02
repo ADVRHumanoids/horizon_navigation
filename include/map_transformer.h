@@ -47,7 +47,7 @@ private:
                    const Eigen::Isometry3d transform);
 
 
-    grid_map::GridMap _grid_map, _exclusion_submap;
+    grid_map::GridMap _grid_map, _exclusion_submap, _local_grid_map;
     grid_map::Position _map_origin, _sensor_origin;
 
     double _blind_zone_width, _blind_zone_height;  // Width of the world map and the exclusion zone in meters

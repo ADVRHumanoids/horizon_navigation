@@ -35,8 +35,8 @@ public:
     void clearObstacles();
     void run();
 
-    void add_obstacle_viz(int id, Eigen::Vector3d origin, Eigen::Vector3d radius, std_msgs::ColorRGBA color);
-    void _obstacles_from_occupacy_grid(const OccupancyMatrix occupancy_matrix);
+    void addObstacleViz(int id, Eigen::Vector3d origin, Eigen::Vector3d radius, std_msgs::ColorRGBA color);
+    void obstaclesFromOccupacyGrid(const OccupancyMatrix occupancy_matrix);
 
     std::vector<Obstacle::Ptr> getObstacles();
 
@@ -58,16 +58,17 @@ private:
     void _init_publishers();
     void _init_load_config();
 
+
+
 //    void _filter_angle();
 
     static std_msgs::ColorRGBA _get_default_color();
-
     bool _min_distance(const Obstacle::Ptr a, const Obstacle::Ptr b);
     bool _max_distance(const Obstacle::Ptr a, const Obstacle::Ptr b);
     double _compute_distance(const Obstacle::Ptr obs);
     std::vector<Obstacle::Ptr> _sort_angle_distance();
-    void _set_blindsight();
-    void _visualize_obstacles_viz();
+    void setBlindsight();
+    void visualizeObstaclesViz();
 
 
 

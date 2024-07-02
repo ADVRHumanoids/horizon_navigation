@@ -53,8 +53,8 @@
         <param name="rate" value="1000"/>
         <param name="map_width" value="6.0"/>
         <param name="map_height" value="6.0"/>
-        <param name="blind_zone_width" value="2.0"/>
-        <param name="blind_zone_height" value="2.0"/>
+        <param name="blind_zone_width" value="2.3"/>
+        <param name="blind_zone_height" value="2.3"/>
         <param name="grid_map_layer_name" value="obstacles"/>
     </node>
 

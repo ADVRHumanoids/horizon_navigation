@@ -18,6 +18,11 @@ MapTransformer::MapTransformer(double map_width,
     _grid_map.setFrameId("map");
     _grid_map.setGeometry(grid_map::Length(map_width, map_height), 0.01);
 
+    _local_grid_map.add(_map_layer_name);
+    _local_grid_map.setPosition(_map_origin);
+    _local_grid_map.setFrameId("base_link");
+    _local_grid_map.setGeometry(grid_map::Length(map_width, map_height), 0.01);
+
     // Create the exclusion submap
     grid_map::Length exclusion_size(_blind_zone_width, _blind_zone_height);
     grid_map::Position map_center = _grid_map.getPosition();
@@ -41,15 +46,21 @@ void MapTransformer::update(const nav_msgs::OccupancyGrid occupancy_grid, const 
     // filter the world map with the exclusion submap
     filterMap(_grid_map, occupancy_grid, _exclusion_submap, transform);
 
-//    _grid_map.getTransformedMap(transform,
-//                                _map_layer_name,
-//                                "base_link");
+
+    // transform the world map into the local frame "base_link"
+    _local_grid_map = _grid_map.getTransformedMap(transform,
+                                                  _map_layer_name,
+                                                  "base_link");
+
+    // select only the submap of given lenght
+    bool success;
+    _local_grid_map = _local_grid_map.getSubmap(_local_grid_map.getPosition(), _grid_map.getLength(), success);
 
 }
 
 grid_map::GridMap MapTransformer::getMap()
 {
-    return _grid_map;
+    return _local_grid_map;
 }
 
 grid_map::GridMap MapTransformer::getBlindZone()
