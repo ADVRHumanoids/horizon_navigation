@@ -1,6 +1,49 @@
 #include <ros/map_transformer_ros.h>
 #include <ros/sonar_ros.h>
 
+void publishRectangle(ros::Publisher& marker_pub, float center_x, float center_y, float width, float height)
+{
+    visualization_msgs::Marker line_strip;
+    line_strip.header.frame_id = "base_link";
+    line_strip.header.stamp = ros::Time::now();
+    line_strip.ns = "rectangle";
+    line_strip.action = visualization_msgs::Marker::ADD;
+    line_strip.pose.orientation.w = 1.0;
+    line_strip.id = 0;
+    line_strip.type = visualization_msgs::Marker::LINE_STRIP;
+    line_strip.scale.x = 0.01; // Line width
+
+    // Set the color -- be sure to set alpha to something non-zero!
+    line_strip.color.r = 0.0;
+    line_strip.color.g = 1.0;
+    line_strip.color.b = 0.0;
+    line_strip.color.a = 1.0;
+
+    geometry_msgs::Point p;
+
+    // Calculate vertices
+    p.x = center_x - width / 2.0;
+    p.y = center_y - height / 2.0;
+    line_strip.points.push_back(p);
+
+    p.x = center_x + width / 2.0;
+    p.y = center_y - height / 2.0;
+    line_strip.points.push_back(p);
+
+    p.x = center_x + width / 2.0;
+    p.y = center_y + height / 2.0;
+    line_strip.points.push_back(p);
+
+    p.x = center_x - width / 2.0;
+    p.y = center_y + height / 2.0;
+    line_strip.points.push_back(p);
+
+    p.x = center_x - width / 2.0;
+    p.y = center_y - height / 2.0;
+    line_strip.points.push_back(p);
+
+    marker_pub.publish(line_strip);
+}
 
 int main(int argc, char** argv)
 {
@@ -17,6 +60,9 @@ int main(int argc, char** argv)
     auto obstacle_pub = nh.advertise<nav_msgs::OccupancyGrid>("/filtered_local_map", 1);
     auto blind_pub = nh.advertise<nav_msgs::OccupancyGrid>("/blind_zone", 1);
     auto sonar_pub = nh.advertise<nav_msgs::OccupancyGrid>("/sonar_map", 1);
+
+    ros::Publisher marker_pub = nh.advertise<visualization_msgs::Marker>("sonar_zone", 10);
+
 
     ros::Rate r(rate);
 
@@ -35,31 +81,40 @@ int main(int argc, char** argv)
                 auto sonar_map = sonar.getMap();
                 auto blind_zone = maptransformer.getBlindZone();
 
-
-                auto small_map = obstacle_map.getSubmap(sonar_map.getPosition(), blind_zone.getLength(), success);
-//                grid_map::GridMap fusion_map;
-//                fusion_map.setFrameId("base_link");
-//                fusion_map.setPosition(grid_map::Position(0.0, 0.0));
-//                fusion_map.setGeometry(obstacle_map.getLength(), obstacle_map.getResolution());
-
-//                fusion_map.add("cazzi", obstacle_map.get("obstacles") + sonar_map.get("sonar_map"));
-
-//                obstacle_map.add("obstacles", sonar_map.get("sonar_map"));
-//                obstacle_map.get("obstacles") += sonar_map.get("sonar_map");
-//                obstacle_map.addDataFrom(sonar_map, false, false, false, {"sonar_map"});
-//                obstacle_map.addDataFrom(sonar_map, false, false, false, {"sonar_map"});
-
-//                for (auto layer : small_map.getLayers())
-//                {
-//                    std::cout << layer << std::endl;
-//                }
-
-//                obstacle_map.getSubmap(obstacle_map.getPosition(), blind_zone.getLength(), success).get("obstacles") += small_map.get("obstacles");
+                grid_map::Length reset_zone_length(1.2 + 0.6, 0.8 + 0.6);
+                grid_map::Index reset_zone_size(reset_zone_length.x() / obstacle_map.getResolution(), reset_zone_length.y() / obstacle_map.getResolution());
 
 
-//                nav_msgs::OccupancyGrid fusion_message;
-//                grid_map::GridMapRosConverter::toOccupancyGrid(fusion_map, "cazzi", -100, 100, fusion_message);
-//                map_fusion_pub.publish(fusion_message);
+                grid_map::Position reset_zone_start_pos = obstacle_map.getPosition() + grid_map::Position(reset_zone_length.x() / 2.0, reset_zone_length.y() / 2.0);
+                grid_map::Index reset_zone_start_index;
+
+                obstacle_map.getIndex(reset_zone_start_pos, reset_zone_start_index);
+
+
+                for (grid_map::SubmapIterator iterator(obstacle_map, reset_zone_start_index, reset_zone_size); !iterator.isPastEnd(); ++iterator)
+                {
+                    grid_map::Position map_position;
+                    obstacle_map.getPosition(*iterator, map_position);
+                    grid_map::Index sonar_index;
+                    sonar_map.getIndex(map_position, sonar_index);
+
+//                    if (obstacle_map.at("obstacles", *iterator) > 50.0)
+//                    {
+////                        std::cout << sonar_map.at("sonar_map", sonar_index) << std::endl;
+//                        if (sonar_map.at("sonar_map", sonar_index) != 100.0)
+//                        {
+//                            obstacle_map.at("obstacles", *iterator) = 0.0;
+//                        }
+//                    }
+
+                    if (sonar_map.at("sonar_map", sonar_index) > 50.0)
+                    {
+                        obstacle_map.at("obstacles", *iterator) = sonar_map.at("sonar_map", sonar_index);
+                    }
+                }
+
+
+                publishRectangle(marker_pub, 0.0, 0.0, reset_zone_length.x(), reset_zone_length.y());
 
                 nav_msgs::OccupancyGrid obstacle_message;
                 grid_map::GridMapRosConverter::toOccupancyGrid(obstacle_map, "obstacles", -100, 100, obstacle_message);

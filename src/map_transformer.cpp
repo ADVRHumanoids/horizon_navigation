@@ -17,17 +17,21 @@ MapTransformer::MapTransformer(double map_width,
     _grid_map.setPosition(_map_origin);
     _grid_map.setFrameId("map");
     _grid_map.setGeometry(grid_map::Length(map_width, map_height), 0.01);
+    _grid_map[_map_layer_name].setZero();
 
     _local_grid_map.add(_map_layer_name);
     _local_grid_map.setPosition(_map_origin);
     _local_grid_map.setFrameId("base_link");
     _local_grid_map.setGeometry(grid_map::Length(map_width, map_height), 0.01);
+    _local_grid_map[_map_layer_name].setZero();
+
 
     // Create the exclusion submap
     _exclusion_submap.add(_map_layer_name);
     _exclusion_submap.setPosition(_map_origin);
     _exclusion_submap.setFrameId("base_link");
     _exclusion_submap.setGeometry(grid_map::Length(_blind_zone_width, _blind_zone_height), 0.01);
+    _exclusion_submap[_map_layer_name].setZero();
 
 
 }
@@ -50,10 +54,6 @@ void MapTransformer::update(const nav_msgs::OccupancyGrid occupancy_grid, const 
     _local_grid_map = _grid_map.getTransformedMap(transform,
                                                   _map_layer_name,
                                                   "base_link");
-
-    // select only the submap of given lenght
-//    bool success;
-//    _local_grid_map = _local_grid_map.getSubmap(_local_grid_map.getPosition(), _grid_map.getLength(), success);
 
 }
 
