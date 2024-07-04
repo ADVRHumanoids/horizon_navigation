@@ -1,5 +1,5 @@
-#ifndef SONAR_ROS_H
-#define SONAR_ROS_H
+#ifndef SONAR_OCCUPANCY_MAP_ROS_H
+#define SONAR_OCCUPANCY_MAP_ROS_H
 
 #include <ros/ros.h>
 #include <nav_msgs/OccupancyGrid.h>
@@ -12,19 +12,32 @@
 #include <sonar.h>
 
 
-class SonarROS
+class SonarOccupancyMapROS
 {
 
 public:
 
-    SonarROS();
+    struct SonarConfig
+    {
+        std::string sensor_name;
+        std::string topic_name;
+        double detection_range = 0.5;
+        double arc_resolution = 30;
+    };
+
+    typedef std::shared_ptr<SonarOccupancyMapROS> Ptr;
+
+    SonarOccupancyMapROS();
     void spin();
     void update();
     grid_map::GridMap getMap();
+    static std::vector<SonarOccupancyMapROS::SonarConfig> load_param_file(ros::NodeHandle nh);
+    std::map<std::string, sensor_msgs::Range::ConstPtr> getRanges();
+    SonarOccupancyMap::Ptr getSonarOccupancyMap();
+
 
 private:
 
-    bool load_param_file();
     void init_publishers();
     void init_subscribers();
     void init_transform();
@@ -39,7 +52,6 @@ private:
     SonarOccupancyMap::Ptr _sonar_occupancy_map;
 
     std::map<std::string, SonarOccupancyMap::Sonar> _sensors;
-
     std::map<std::string, std::string> _sensor_topics;
 
     std::map<std::string, sensor_msgs::Range::ConstPtr> _range_msgs;

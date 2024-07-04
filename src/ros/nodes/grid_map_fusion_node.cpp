@@ -1,4 +1,4 @@
-#include <ros/map_transformer_ros.h>
+#include <ros/navigation_ros.h>
 #include <ros/sonar_ros.h>
 
 void publishRectangle(ros::Publisher& marker_pub, float center_x, float center_y, float width, float height)
@@ -53,8 +53,8 @@ int main(int argc, char** argv)
     ros::param::param<double>("~rate", rate, 100);
     ROS_INFO("Running at rate: %f", rate);
 
-    auto maptransformer = MapTransformerROS(rate);
-    auto sonar = SonarROS();
+    auto maptransformer = VelodyneOccupancyMapROS(rate);
+    auto sonar = SonarOccupancyMapROS();
 
     auto map_fusion_pub = nh.advertise<nav_msgs::OccupancyGrid>("/fusion_map", 1);
     auto obstacle_pub = nh.advertise<nav_msgs::OccupancyGrid>("/filtered_local_map", 1);

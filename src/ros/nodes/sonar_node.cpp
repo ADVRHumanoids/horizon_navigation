@@ -9,7 +9,7 @@ int main(int argc, char** argv)
 //    sonar_names.push_back("/bosch_uss5/ultrasound_rr_sag");
 //    sonar_names.push_back("/bosch_uss5/ultrasound_rr_lat");
 
-    auto sr = SonarROS();
+    auto sr = SonarOccupancyMapROS();
     sr.spin();
     return 0;
 

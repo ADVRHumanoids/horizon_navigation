@@ -1,0 +1,65 @@
+<?xml version="1.0"?>
+<launch>
+
+    <include file="$(find horizon_navigation)/launch/sublaunch/velodyne_to_laserscan.launch"/> <!-- transform velodyne to laserscan -->
+    <include file="$(find horizon_navigation)/launch/sublaunch/laserscan_merge.launch"/> <!-- merge laserscan together -->
+    <include file="$(find horizon_navigation)/launch/sublaunch/laserscan_filter.launch"/> <!-- filter robot body from laserscan -->
+
+    <include file="$(find horizon_navigation)/launch/sublaunch/costmap2d.launch"/> <!-- create a local map -->
+
+    <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
+      <remap from="scan" to="scan_filtered"/>
+<!--       <param name="map_frame" value="map"/> -->
+<!--       <param name="odom_frame" value="odom"/> -->
+<!--       <param name="output_frame" value="odom"/> -->
+<!--       <param name="base_footprint_frame" value="base_link"/> -->
+      <param name="map_update_interval" value="1.0"/>
+      <param name="transform_publish_period" value="0.005"/>  <!-- tf transform rate /map -->
+<!--       <param name="maxUrange" value="2.0"/> -->
+<!--       <param name="sigma" value="0.05"/> -->
+<!--       <param name="kernelSize" value="1"/> -->
+<!--       <param name="lstep" value="0.05"/> -->
+<!--       <param name="astep" value="0.05"/> -->
+<!--       <param name="iterations" value="5"/> -->
+<!--       <param name="lsigma" value="0.075"/> -->
+<!--       <param name="ogain" value="3.0"/> -->
+<!--       <param name="lskip" value="0"/> -->
+<!--       <param name="srr" value="0.1"/> -->
+<!--       <param name="srt" value="0.2"/> -->
+<!--       <param name="str" value="0.1"/> -->
+<!--       <param name="stt" value="0.2"/> -->
+<!--       <param name="linearUpdate" value="1.0"/> -->
+<!--       <param name="angularUpdate" value="0.5"/> -->
+      <param name="temporalUpdate" value="1.0"/>
+<!--       <param name="resampleThreshold" value="0.5"/> -->
+<!--       <param name="particles" value="30"/> -->
+      <param name="xmin" value="-5.0"/>
+      <param name="ymin" value="-5.0"/>
+      <param name="xmax" value="5.0"/>
+      <param name="ymax" value="5.0"/>
+      <param name="delta" value="0.01"/>  <!-- resolution of the map -->
+<!--       <param name="llsamplerange" value="0.01"/> -->
+<!--       <param name="llsamplestep" value="0.01"/> -->
+<!--       <param name="lasamplerange" value="0.005"/> -->
+<!--       <param name="lasamplestep" value="0.005"/> -->
+<!--       <param name="stack_size_to_use" value="40000000"/> -->
+<!--       <param name="maxRange" value="20.0"/> -->
+
+    </node>
+
+    <node pkg="horizon_navigation" type="velodyne_node" name="velodyne_node" output="screen">
+        <remap from="global_map" to="map"/>
+        <remap from="local_map" to="/costmap_node/costmap/costmap"/>
+        <param name="rate" value="1000"/>
+        <param name="map_width" value="6.0"/>
+        <param name="map_height" value="6.0"/>
+        <param name="blind_zone_width" value="2.3"/>
+        <param name="blind_zone_height" value="2.3"/>
+        <param name="grid_map_layer_name" value="obstacles"/>
+    </node>
+
+    <node pkg="horizon_navigation" type="sonar_node" name="sonar_node" output="screen">
+        <param name="config_file" type="string" value="$(find horizon_navigation)/config/sonar_config.yaml"/>
+    </node>
+
+</launch>

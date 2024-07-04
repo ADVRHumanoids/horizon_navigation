@@ -1,11 +1,12 @@
 <?xml version="1.0"?>
 <launch>
 
+    <include file="$(find horizon_navigation)/launch/sublaunch/costmap2d.launch"/> <!-- create a local map -->
+
+    <!--    required for gmapping   -->
     <include file="$(find horizon_navigation)/launch/sublaunch/velodyne_to_laserscan.launch"/> <!-- transform velodyne to laserscan -->
     <include file="$(find horizon_navigation)/launch/sublaunch/laserscan_merge.launch"/> <!-- merge laserscan together -->
     <include file="$(find horizon_navigation)/launch/sublaunch/laserscan_filter.launch"/> <!-- filter robot body from laserscan -->
-
-    <include file="$(find horizon_navigation)/launch/sublaunch/costmap2d.launch"/> <!-- create a local map -->
 
     <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
       <remap from="scan" to="scan_filtered"/>
@@ -47,7 +48,7 @@
 
     </node>
 
-    <node pkg="horizon_navigation" type="map_transformer_node" name="map_transformer_node" output="screen">
+    <node pkg="horizon_navigation" type="navigation_node" name="navigation_node" output="screen">
         <remap from="global_map" to="map"/>
         <remap from="local_map" to="/costmap_node/costmap/costmap"/>
         <param name="rate" value="1000"/>
@@ -56,10 +57,9 @@
         <param name="blind_zone_width" value="2.3"/>
         <param name="blind_zone_height" value="2.3"/>
         <param name="grid_map_layer_name" value="obstacles"/>
-    </node>
-
-    <node pkg="horizon_navigation" type="sonar_node" name="sonar_node" output="screen">
         <param name="config_file" type="string" value="$(find horizon_navigation)/config/sonar_config.yaml"/>
     </node>
+
+
 
 </launch>

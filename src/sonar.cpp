@@ -6,7 +6,6 @@ SonarOccupancyMap::SonarOccupancyMap(Eigen::Vector2d map_origin): //= std::vecto
 //    _detection_range(detection_range)
 {
 
-
     _map.setPosition(_map_origin);
     _map.setFrameId("base_link");
     _map.setGeometry(grid_map::Length(6.0, 6.0), 0.01);
@@ -97,7 +96,6 @@ void SonarOccupancyMap::updateSonar(std::string sensor_name,
             double angle = - sonar_update.field_of_view / 2 + iterator * (sonar_update.field_of_view / sonar.arc_resolution);
             double x_cell = sonar_update.range * cos(angle);
             double y_cell = sonar_update.range * sin(angle);
-
 
             grid_map::Position3 point_sensor3d(x_cell, y_cell, 0.0);
             auto point_world3d = sonar.origin_T_sensor * point_sensor3d;

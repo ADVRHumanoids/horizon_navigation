@@ -29,9 +29,10 @@ catkin_package()
 set(LIBRARY_TARGET_NAME horizon_navigation) # set library name
 
 add_library(${LIBRARY_TARGET_NAME} SHARED
-  src/obstacle.cpp
   src/obstacles_generator.cpp
-  src/map_transformer.cpp
+  src/obstacle.cpp
+  src/navigation.cpp
+  src/velodyne.cpp
   src/sonar.cpp
 )
 
@@ -48,7 +49,8 @@ target_include_directories(${LIBRARY_TARGET_NAME}
 # =============================
 
 add_library(horizon_navigation_ros SHARED
-    src/ros/map_transformer_ros.cpp
+    src/ros/velodyne_ros.cpp
+    src/ros/navigation_ros.cpp
     src/ros/obstacle_generator_ros.cpp
     src/ros/sonar_ros.cpp)
 
@@ -68,10 +70,19 @@ target_link_libraries(horizon_navigation_ros
 
 # =============================
 
-add_executable(map_transformer_node
-    src/ros/nodes/map_transformer_node.cpp)
+add_executable(velodyne_node
+    src/ros/nodes/velodyne_node.cpp)
 
-target_link_libraries(map_transformer_node
+target_link_libraries(velodyne_node
+    horizon_navigation_ros
+    ${catkin_LIBRARIES})
+
+# =============================
+
+add_executable(navigation_node
+    src/ros/nodes/navigation_node.cpp)
+
+target_link_libraries(navigation_node
     horizon_navigation_ros
     ${catkin_LIBRARIES})
 
@@ -111,7 +122,7 @@ install(TARGETS  horizon_navigation_ros
 #  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 #)
 
-install(TARGETS map_transformer_node
+install(TARGETS navigation_node
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
@@ -120,6 +131,10 @@ install(TARGETS sonar_node
 )
 
 install(TARGETS grid_map_fusion_node
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(TARGETS velodyne_node
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

@@ -1,6 +1,6 @@
 #include <ros/sonar_ros.h>
 
-SonarROS::SonarROS():
+SonarOccupancyMapROS::SonarOccupancyMapROS():
 //    _sensor_topic_names(sensor_topic_names),
     _tfBuffer(),
     _tfListener(_tfBuffer),
@@ -11,7 +11,18 @@ SonarROS::SonarROS():
     _nhpr = ros::NodeHandle("~");
 
     // get sensor info
-    load_param_file();
+    auto sensors_config = load_param_file(_nhpr);
+
+    for (SonarConfig sonar_info : sensors_config)
+    {
+        _sensor_topics[sonar_info.sensor_name] = sonar_info.topic_name;
+
+        SonarOccupancyMap::Sonar sonar;
+        sonar.arc_resolution = sonar_info.arc_resolution;
+        sonar.detection_range = sonar_info.detection_range;
+
+        _sensors[sonar_info.sensor_name] = sonar;
+    }
 
     ROS_INFO_STREAM("Sensors: ");
     for (auto sensor : _sensor_topics)
@@ -39,14 +50,15 @@ SonarROS::SonarROS():
     }
 }
 
-bool SonarROS::load_param_file()
+std::vector<SonarOccupancyMapROS::SonarConfig> SonarOccupancyMapROS::load_param_file(ros::NodeHandle nh)
 {
 
+    std::vector<SonarConfig> sonar_config;
+
     std::string config_file_path;
-    if (!_nhpr.getParam("config_file", config_file_path))
+    if (!nh.getParam("config_file", config_file_path))
     {
         ROS_ERROR("Failed to get param 'config_file'");
-        return false;
     }
 
     try
@@ -56,32 +68,49 @@ bool SonarROS::load_param_file()
         {
             for (const auto& sensor : config["sensors"])
             {
-                std::string sensor_name = sensor.first.as<std::string>();
-                YAML::Node sensor_config = sensor.second;
 
-                if (_sensors.count(sensor_name) != 0)
+                std::string sensor_name = sensor.first.as<std::string>();
+                YAML::Node sensor_config_yaml = sensor.second;
+
+                for (auto sensor_info : sonar_config)
                 {
-                    ROS_ERROR("Multiple sensors added with the same name: %s", sensor_name.c_str());
+                    if (sensor_info.sensor_name == sensor_name)
+                    {
+                        ROS_ERROR("Multiple sensors added with the same name: %s", sensor_name.c_str());
+                    }
                 }
 
-                if (sensor_config["topic_name"])
+                SonarConfig sensor_info;
+                sensor_info.sensor_name = sensor_name;
+
+                if (sensor_config_yaml["topic_name"])
                 {
-                    _sensor_topics[sensor_name] = sensor_config["topic_name"].as<std::string>();
+                    sensor_info.topic_name = sensor_config_yaml["topic_name"].as<std::string>();
                 }
                 else
                 {
                     ROS_ERROR("Sensor '%s' requires param 'topic_name'.", sensor_name.c_str());
                 }
 
-                if (sensor_config["detection_range"])
+                if (sensor_config_yaml["detection_range"])
                 {
-                    _sensors[sensor_name].detection_range = sensor_config["detection_range"].as<double>();
+                    sensor_info.detection_range = sensor_config_yaml["detection_range"].as<double>();
                 }
-//                else
-//                {
-//                    ROS_WARN("Sensor '%s' requires param 'topic_name'.", sensor_name.c_str());
-//                }
+                else
+                {
+                    ROS_WARN("Sensor '%s' missing param 'detection_range'. Using default: '%f'", sensor_name.c_str(), sensor_info.detection_range);
+                }
 
+                if (sensor_config_yaml["arc_resolution"])
+                {
+                    sensor_info.arc_resolution = sensor_config_yaml["arc_resolution"].as<double>();
+                }
+                else
+                {
+                    ROS_WARN("Sensor '%s' missing param 'arc_resolution'. Using default: '%f'", sensor_name.c_str(), sensor_info.arc_resolution);
+                }
+
+                sonar_config.push_back(sensor_info);
             }
         }
         else
@@ -92,28 +121,37 @@ bool SonarROS::load_param_file()
     catch (const YAML::Exception& e)
     {
         ROS_ERROR("YAML Exception: %s", e.what());
-        return false;
     }
 
-    return true;
+    return sonar_config;
 }
 
-void SonarROS::init_publishers()
+std::map<std::string, sensor_msgs::Range::ConstPtr> SonarOccupancyMapROS::getRanges()
+{
+    return _range_msgs;
+}
+
+SonarOccupancyMap::Ptr SonarOccupancyMapROS::getSonarOccupancyMap()
+{
+    return _sonar_occupancy_map;
+}
+
+void SonarOccupancyMapROS::init_publishers()
 {
     _sonar_map_publisher = _nh.advertise<nav_msgs::OccupancyGrid>("sonar_map", 1, true);
 }
 
-void SonarROS::init_subscribers()
+void SonarOccupancyMapROS::init_subscribers()
 {
     for (auto sensor : _sensor_topics)
     {
-        _range_subs[sensor.first] = _nh.subscribe<sensor_msgs::Range>(sensor.second, 1000, &SonarROS::rangeCallback, this);
+        _range_subs[sensor.first] = _nh.subscribe<sensor_msgs::Range>(sensor.second, 1000, &SonarOccupancyMapROS::rangeCallback, this);
         auto msg = ros::topic::waitForMessage<sensor_msgs::Range>(sensor.second, _nh);
         _range_msgs[sensor.first] = msg;
     }
 }
 
-void SonarROS::init_transform()
+void SonarOccupancyMapROS::init_transform()
 {
     try
     {
@@ -136,12 +174,12 @@ void SonarROS::init_transform()
     }
 }
 
-void SonarROS::rangeCallback(const sensor_msgs::Range::ConstPtr& msg)
+void SonarOccupancyMapROS::rangeCallback(const sensor_msgs::Range::ConstPtr& msg)
 {
     _range_msgs[msg->header.frame_id] = msg;
 }
 
-void SonarROS::spin()
+void SonarOccupancyMapROS::spin()
 {
 
     while (_nh.ok())
@@ -166,7 +204,7 @@ void SonarROS::spin()
     }
 }
 
-void SonarROS::update()
+void SonarOccupancyMapROS::update()
 {
 
     for (auto range_msg : _range_msgs)
@@ -181,14 +219,14 @@ void SonarROS::update()
                                           range_msg.second->field_of_view);
 
             _sonar_occupancy_map->update();
-
-            _map = _sonar_occupancy_map->getMap();
         }
     }
 
+    _map = _sonar_occupancy_map->getMap();
+
 }
 
-grid_map::GridMap SonarROS::getMap()
+grid_map::GridMap SonarOccupancyMapROS::getMap()
 {
     return _map;
 }
