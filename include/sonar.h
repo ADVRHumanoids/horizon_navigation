@@ -16,6 +16,7 @@ public:
 
     struct Sonar
     {
+        typedef std::shared_ptr<Sonar> Ptr;
         Eigen::Isometry3d origin_T_sensor;
         double detection_range;
         double arc_resolution;
@@ -23,7 +24,13 @@ public:
 
     SonarOccupancyMap(Eigen::Vector2d map_origin);
 
-    bool addSensor(std::string name, Sonar sonar);
+    bool addSensor(std::string name, Sonar::Ptr sonar);
+
+    Sonar::Ptr getSensor(std::string sonar_name);
+
+    std::vector<std::string> getSensorsNames();
+
+
 
     bool setData(std::string name,
                  std::string frame_id,
@@ -36,7 +43,17 @@ public:
 
     grid_map::GridMap getMap();
 
+    bool clearSonarCone(grid_map::GridMap& grid_map,
+                        std::string sensor_name,
+                        std::string layer_name,
+                        Eigen::Isometry3d map_transform = Eigen::Isometry3d::Identity());
 
+    void updateGridMapWithSonar(grid_map::GridMap& grid_map,
+                                std::string sensor_name,
+                                std::string layer_name,
+                                Eigen::Isometry3d map_transform = Eigen::Isometry3d::Identity());
+
+    bool getSensorsStatus(std::string sensor_name);
 
 
 private:
@@ -53,14 +70,14 @@ private:
 
     };
 
-    void updateSonar(std::string name,
-                     SonarUpdate sonar);
+
 
     grid_map::GridMap _map;
     grid_map::Position _map_origin, _sensor_origin;
 
-    std::map<std::string, Sonar> _sensors;
+    std::map<std::string, Sonar::Ptr> _sensors;
     std::map<std::string, SonarUpdate> _sensor_updates;
+    std::vector<std::string> _sensors_names;
 
 
 

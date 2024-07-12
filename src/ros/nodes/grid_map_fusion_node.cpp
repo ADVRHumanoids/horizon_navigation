@@ -56,7 +56,6 @@ int main(int argc, char** argv)
     auto maptransformer = VelodyneOccupancyMapROS(rate);
     auto sonar = SonarOccupancyMapROS();
 
-    auto map_fusion_pub = nh.advertise<nav_msgs::OccupancyGrid>("/fusion_map", 1);
     auto obstacle_pub = nh.advertise<nav_msgs::OccupancyGrid>("/filtered_local_map", 1);
     auto blind_pub = nh.advertise<nav_msgs::OccupancyGrid>("/blind_zone", 1);
     auto sonar_pub = nh.advertise<nav_msgs::OccupancyGrid>("/sonar_map", 1);
@@ -120,9 +119,9 @@ int main(int argc, char** argv)
                 grid_map::GridMapRosConverter::toOccupancyGrid(obstacle_map, "obstacles", -100, 100, obstacle_message);
                 obstacle_pub.publish(obstacle_message);
 
-                nav_msgs::OccupancyGrid sonar_message;
-                grid_map::GridMapRosConverter::toOccupancyGrid(sonar_map, "sonar_map", -100, 100, sonar_message);
-                sonar_pub.publish(sonar_message);
+//                nav_msgs::OccupancyGrid sonar_message;
+//                grid_map::GridMapRosConverter::toOccupancyGrid(sonar_map, "sonar_map", -100, 100, sonar_message);
+//                sonar_pub.publish(sonar_message);
 
                 nav_msgs::OccupancyGrid blind_zone_message;
                 grid_map::GridMapRosConverter::toOccupancyGrid(blind_zone, "obstacles", -100, 100, blind_zone_message);

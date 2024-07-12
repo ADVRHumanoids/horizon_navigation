@@ -51,7 +51,7 @@ private:
 
     SonarOccupancyMap::Ptr _sonar_occupancy_map;
 
-    std::map<std::string, SonarOccupancyMap::Sonar> _sensors;
+    std::map<std::string, SonarOccupancyMap::Sonar::Ptr> _sensors;
     std::map<std::string, std::string> _sensor_topics;
 
     std::map<std::string, sensor_msgs::Range::ConstPtr> _range_msgs;

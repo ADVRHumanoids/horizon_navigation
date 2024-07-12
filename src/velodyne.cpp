@@ -32,9 +32,6 @@ VelodyneOccupancyMap::VelodyneOccupancyMap(Eigen::Vector2d map_origin = Eigen::V
     _exclusion_submap.setPosition(_map_origin);
     _exclusion_submap.setFrameId(_robot_frame_id);
     _exclusion_submap.setGeometry(_blind_zone_length, _map_resolution);
-
-    // set up info from sonar
-//    _sonar_handler = std::make_unique<SonarOccupancyMap>(_local_grid_map.getPosition());
 }
 
 void VelodyneOccupancyMap::filterMap(grid_map::GridMap& map,

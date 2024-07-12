@@ -17,9 +17,9 @@ SonarOccupancyMapROS::SonarOccupancyMapROS():
     {
         _sensor_topics[sonar_info.sensor_name] = sonar_info.topic_name;
 
-        SonarOccupancyMap::Sonar sonar;
-        sonar.arc_resolution = sonar_info.arc_resolution;
-        sonar.detection_range = sonar_info.detection_range;
+        auto sonar = std::make_shared<SonarOccupancyMap::Sonar>();
+        sonar->arc_resolution = sonar_info.arc_resolution;
+        sonar->detection_range = sonar_info.detection_range;
 
         _sensors[sonar_info.sensor_name] = sonar;
     }
@@ -45,7 +45,7 @@ SonarOccupancyMapROS::SonarOccupancyMapROS():
     // add sensors
     for (auto &sensor : _sensors)
     {
-        sensor.second.arc_resolution = 30;
+        sensor.second->arc_resolution = 30;
         _sonar_occupancy_map->addSensor(sensor.first, sensor.second);
     }
 }
@@ -162,7 +162,7 @@ void SonarOccupancyMapROS::init_transform()
                                                                        ros::Time(0), //_latest_local_map->header.stamp
                                                                        ros::Duration(1.0));
 
-            sensor.second.origin_T_sensor = tf2::transformToEigen(origin_T_sensor_transform);
+            sensor.second->origin_T_sensor = tf2::transformToEigen(origin_T_sensor_transform);
         }
 
 

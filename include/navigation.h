@@ -19,7 +19,8 @@ public:
                 const Eigen::Isometry3d transform,
                 std::map<std::string, sensor_msgs::Range::ConstPtr> range_messages);
 
-    grid_map::GridMap getLocalMap();
+    grid_map::GridMap getVelodyneLocalMap();
+    grid_map::GridMap getSonarLocalMap();
 
 private:
 
@@ -34,7 +35,7 @@ private:
     VelodyneOccupancyMap::Ptr _velodyne_occupancy_map;
     SonarOccupancyMap::Ptr _sonar_occupancy_map;
 
-    grid_map::GridMap _global_grid_map, _sonar_grid_map, _local_grid_map, _exclusion_submap;
+    grid_map::GridMap _global_grid_map, _local_grid_map, _exclusion_submap, _local_sonar_grid_map;
 
 
 };

@@ -9,8 +9,10 @@ Navigation::Navigation(VelodyneOccupancyMap::Ptr velodyne_occupancy_map,
 
     _global_grid_map = _velodyne_occupancy_map->getGlobalMap();
     _exclusion_submap = velodyne_occupancy_map->getBlindZone();
+//    _sonar_grid_map = sonar_occupancy_map->getMap();
 
     _global_grid_map.add("sonar", 0.0);
+
 
 }
 
@@ -30,19 +32,22 @@ bool Navigation::update(const nav_msgs::OccupancyGrid occupancy_grid, const Eige
                                           range_msg.second->min_range,
                                           range_msg.second->max_range,
                                           range_msg.second->field_of_view);
-
-            _sonar_occupancy_map->update();
         }
     }
 
-    _sonar_grid_map = _sonar_occupancy_map->getMap();
-    // ============================================================================
 
+    _global_grid_map.clear("sonar");
+
+    for (auto sensor_name : _sonar_occupancy_map->getSensorsNames())
+    {
+        _sonar_occupancy_map->updateGridMapWithSonar(_global_grid_map, sensor_name, "sonar", transform.inverse());
+    }
+
+    // ============================================================================
 
     _global_grid_map.move(base_link_T_map_position);
 
     // filter the world map with the exclusion submap (w.r.t. base_link frame)
-
     for (int i = 0; i < occupancy_grid.info.width; ++i)
     {
         for (int j = 0; j < occupancy_grid.info.height; ++j)
@@ -73,52 +78,23 @@ bool Navigation::update(const nav_msgs::OccupancyGrid occupancy_grid, const Eige
         }
     }
 
-
-    // set a reset zone with the sonars
-    grid_map::Length reset_zone_length(1.2 + 0.6, 0.8 + 0.6);
-    grid_map::Index reset_zone_size(reset_zone_length.x() / _global_grid_map.getResolution(), reset_zone_length.y() / _global_grid_map.getResolution());
-
-    // get the starting positon and the index
-    grid_map::Position reset_zone_start_pos = _global_grid_map.getPosition() + grid_map::Position(reset_zone_length.x() / 2.0, reset_zone_length.y() / 2.0);
-    grid_map::Index reset_zone_start_index;
-
-    _global_grid_map.getIndex(reset_zone_start_pos, reset_zone_start_index);
-
-    for (grid_map::SubmapIterator iterator(_global_grid_map, reset_zone_start_index, reset_zone_size); !iterator.isPastEnd(); ++iterator)
+    for (auto sonar : _sonar_occupancy_map->getSensorsNames())
     {
-
-        // transform from world to base link
-        grid_map::Position global_map_position;
-        _global_grid_map.getPosition(*iterator, global_map_position);
-        auto local_map_position = transform * grid_map::Position3(global_map_position.x(), global_map_position.y(), 0.0);
-
-        grid_map::Index sonar_index;
-        _sonar_grid_map.getIndex(grid_map::Position(local_map_position.x(), local_map_position.y()), sonar_index);
-
-
-        if (_global_grid_map.at("obstacles", *iterator) > 50.0)
+        if (!_sonar_occupancy_map->getSensorsStatus(sonar))
         {
-//                        std::cout << sonar_map.at("sonar_map", sonar_index) << std::endl;
-            if (_sonar_grid_map.at("sonar_map", sonar_index) != 100.0)
-            {
-                _global_grid_map.at("obstacles", *iterator) = 0.0;
-            }
-        }
-
-        if (_sonar_grid_map.at("sonar_map", sonar_index) > 50.0)
-        {
-            _global_grid_map.at("obstacles", *iterator) = _sonar_grid_map.at("sonar_map", sonar_index);
+            _sonar_occupancy_map->clearSonarCone(_global_grid_map, sonar, "obstacles", transform.inverse());
         }
     }
+
 
     _local_grid_map = _global_grid_map.getTransformedMap(transform,
                                                          "obstacles",
                                                          "base_link");
 
+    _local_sonar_grid_map = _global_grid_map.getTransformedMap(transform,
+                                                               "sonar",
+                                                               "base_link");
 
-//    _local_grid_map.get("obstacles") += _global_grid_map.getTransformedMap(transform,
-//                                                                           "sonar",
-//                                                                           "base_link").get("sonar");
 
 
 
@@ -126,8 +102,13 @@ bool Navigation::update(const nav_msgs::OccupancyGrid occupancy_grid, const Eige
 
 }
 
-grid_map::GridMap Navigation::getLocalMap()
+grid_map::GridMap Navigation::getVelodyneLocalMap()
 {
     return _local_grid_map;
+}
+
+grid_map::GridMap Navigation::getSonarLocalMap()
+{
+    return _local_sonar_grid_map;
 }
 

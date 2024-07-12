@@ -38,19 +38,41 @@ SonarOccupancyMap::SonarOccupancyMap(Eigen::Vector2d map_origin): //= std::vecto
 
 }
 
-bool SonarOccupancyMap::addSensor(std::string name, SonarOccupancyMap::Sonar sonar)
+bool SonarOccupancyMap::addSensor(std::string name, SonarOccupancyMap::Sonar::Ptr sonar)
 {
-    _sensors[name].detection_range = sonar.detection_range;
-    _sensors[name].arc_resolution = sonar.arc_resolution;
-    _sensors[name].origin_T_sensor = sonar.origin_T_sensor;
+//    _sensors[name].detection_range = sonar->detection_range;
+//    _sensors[name].arc_resolution = sonar->arc_resolution;
+//    _sensors[name].origin_T_sensor = sonar->origin_T_sensor;
+
+    _sensors[name] = sonar;
+
+    _sensors_names.push_back(name);
 
     std::cout << "adding sensor " << "'" << name << "'" << std::endl;
-    std::cout << "       detection range: " << _sensors[name].detection_range << std::endl;
-    std::cout << "       arc_resolution: " << _sensors[name].arc_resolution << std::endl;
-    std::cout << "       transform: " << _sensors[name].origin_T_sensor.translation().transpose() << std::endl;
+    std::cout << "       detection range: " << _sensors[name]->detection_range << std::endl;
+    std::cout << "       arc_resolution: " << _sensors[name]->arc_resolution << std::endl;
+    std::cout << "       transform: " << _sensors[name]->origin_T_sensor.translation().transpose() << std::endl;
     std::cout << std::endl;
 
     return true;
+}
+
+SonarOccupancyMap::Sonar::Ptr SonarOccupancyMap::getSensor(std::string sonar_name)
+{
+    if (_sensors.find(sonar_name) != _sensors.end())
+    {
+        return _sensors[sonar_name];
+    }
+    else
+    {
+        return nullptr;
+    }
+
+}
+
+std::vector<std::string> SonarOccupancyMap::getSensorsNames()
+{
+    return _sensors_names;
 }
 
 bool SonarOccupancyMap::setData(std::string name, std::string frame_id, double range, double min_range, double max_range, double field_of_view)
@@ -70,9 +92,9 @@ bool SonarOccupancyMap::update()
 
     _map.clear("sonar_map");
 
-    for (auto sonar_update : _sensor_updates)
+    for (auto sensor_name : _sensors_names)
     {
-        updateSonar(sonar_update.first, sonar_update.second);
+        updateGridMapWithSonar(_map, sensor_name, "sonar_map");
     }
 
     return true;
@@ -83,26 +105,75 @@ grid_map::GridMap SonarOccupancyMap::getMap()
     return _map;
 }
 
-void SonarOccupancyMap::updateSonar(std::string sensor_name,
-                                    SonarOccupancyMap::SonarUpdate sonar_update)
+bool SonarOccupancyMap::clearSonarCone(grid_map::GridMap& grid_map,
+                                       std::string sensor_name,
+                                       std::string layer_name,
+                                       Eigen::Isometry3d map_transform)
 {
     auto sonar = _sensors[sensor_name];
 
-    if (sonar_update.range <= sonar.detection_range)
+    for (auto range = sonar->detection_range; range > 0.0; range -= grid_map.getResolution())
     {
-        for (auto iterator = 0; iterator < sonar.arc_resolution; iterator++)
+
+        double max_resolution = (2 * tan(_sensor_updates[sensor_name].field_of_view/2) * range) / grid_map.getResolution();
+
+        for (auto iterator = 0; iterator < max_resolution; iterator++)
         {
             // compute the range
-            double angle = - sonar_update.field_of_view / 2 + iterator * (sonar_update.field_of_view / sonar.arc_resolution);
-            double x_cell = sonar_update.range * cos(angle);
-            double y_cell = sonar_update.range * sin(angle);
+            double angle = - _sensor_updates[sensor_name].field_of_view / 2 + iterator * (_sensor_updates[sensor_name].field_of_view / max_resolution);
+            double x_cell = range * cos(angle);
+            double y_cell = range * sin(angle);
 
             grid_map::Position3 point_sensor3d(x_cell, y_cell, 0.0);
-            auto point_world3d = sonar.origin_T_sensor * point_sensor3d;
+            auto point_world3d = map_transform * sonar->origin_T_sensor * point_sensor3d;
 
             grid_map::Position position(point_world3d.x(), point_world3d.y());
 
-            _map.atPosition("sonar_map", position) = 100;
+            grid_map.atPosition(layer_name, position) = 0;
         }
     }
+
+    return true;
+}
+
+
+void SonarOccupancyMap::updateGridMapWithSonar(grid_map::GridMap& grid_map,
+                                               std::string sensor_name,
+                                               std::string layer_name,
+                                               Eigen::Isometry3d map_transform)
+{
+    auto sonar = _sensors[sensor_name];
+
+    if (getSensorsStatus(sensor_name))
+    {
+        for (auto iterator = 0; iterator < sonar->arc_resolution; iterator++)
+        {
+            // compute the range
+            double angle = - _sensor_updates[sensor_name].field_of_view / 2 + iterator * (_sensor_updates[sensor_name].field_of_view / sonar->arc_resolution);
+            double x_cell = _sensor_updates[sensor_name].range * cos(angle);
+            double y_cell = _sensor_updates[sensor_name].range * sin(angle);
+
+            grid_map::Position3 point_sensor3d(x_cell, y_cell, 0.0);
+            auto point_world3d = map_transform * sonar->origin_T_sensor * point_sensor3d;
+
+            grid_map::Position position(point_world3d.x(), point_world3d.y());
+
+            if (grid_map.isInside(position))
+            {
+                grid_map.atPosition(layer_name, position) = 100;
+            }
+        }
+    }
+}
+
+
+
+bool SonarOccupancyMap::getSensorsStatus(std::string sensor_name)
+{
+    if (_sensor_updates[sensor_name].range <= _sensors[sensor_name]->detection_range)
+    {
+        return true;
+    }
+
+    return false;
 }

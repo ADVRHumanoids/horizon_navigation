@@ -8,6 +8,28 @@ sensors:
         topic_name: /bosch_uss5/ultrasound_rr_lat
         detection_range: 0.4
 
+    ultrasound_fr_sag:
+        topic_name: /bosch_uss5/ultrasound_fr_sag
+        detection_range: 0.4
+
     ultrasound_fr_lat:
         topic_name: /bosch_uss5/ultrasound_fr_lat
         detection_range: 0.4
+
+    ultrasound_fl_sag:
+        topic_name: /bosch_uss5/ultrasound_fl_sag
+        detection_range: 0.4
+
+    ultrasound_fl_lat:
+        topic_name: /bosch_uss5/ultrasound_fl_lat
+        detection_range: 0.4
+
+    ultrasound_rl_sag:
+        topic_name: /bosch_uss5/ultrasound_rl_sag
+        detection_range: 0.4
+
+    ultrasound_rl_lat:
+        topic_name: /bosch_uss5/ultrasound_rl_lat
+        detection_range: 0.4
+
+
