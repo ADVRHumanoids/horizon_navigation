@@ -6,7 +6,6 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
-        - /velodyne_map1
         - /TF1/Frames1
       Splitter Ratio: 0.5
     Tree Height: 746
@@ -479,12 +478,12 @@ Visualization Manager:
       Class: rviz/Map
       Color Scheme: map
       Draw Behind: false
-      Enabled: true
+      Enabled: false
       Name: velodyne_map
       Topic: /velodyne_map
       Unreliable: false
       Use Timestamp: false
-      Value: true
+      Value: false
     - Alpha: 0.699999988079071
       Class: rviz/Map
       Color Scheme: map
@@ -501,7 +500,7 @@ Visualization Manager:
       Draw Behind: false
       Enabled: false
       Name: fusion_map
-      Topic: /fusion_map
+      Topic: /filtered_local_map
       Unreliable: false
       Use Timestamp: false
       Value: false
@@ -509,9 +508,19 @@ Visualization Manager:
       Class: rviz/Map
       Color Scheme: map
       Draw Behind: false
-      Enabled: false
+      Enabled: true
       Name: navigation_map
       Topic: /fusion_map
+      Unreliable: false
+      Use Timestamp: false
+      Value: true
+    - Alpha: 0.699999988079071
+      Class: rviz/Map
+      Color Scheme: map
+      Draw Behind: false
+      Enabled: false
+      Name: blind_zone_map
+      Topic: /blind_zone
       Unreliable: false
       Use Timestamp: false
       Value: false
@@ -1058,7 +1067,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 10.1712064743042
+      Distance: 5.755802631378174
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -1074,9 +1083,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.43979716300964355
+      Pitch: 0.4797971248626709
       Target Frame: <Fixed Frame>
-      Yaw: 5.870426177978516
+      Yaw: 6.1704301834106445
     Saved: ~
 Window Geometry:
   Displays:
