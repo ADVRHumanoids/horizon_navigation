@@ -18,3 +18,15 @@ The occupancy map occupied cells are transformed into sphere instances that can 
 For more implementation details, check:
  * [horizon obstacles management](README_obstacles.md)
  * [occupancy map generation](README_occupancy_map.md)
+
+---
+ ### full example
+
+- ``mon launch concert_gazebo concert.launch  velodyne:=true ultrasound:=true`` (for robot simulation with sensors)
+- ``mon launch concert_odometry concert_odometry.launch`` (for robot odometry, publishes frame ``/odom``)
+- ``mon launch horizon_navigation navigation.launch`` (generates the occupancy map)
+- ``mon launch concert_horizon concert_controller.launch xbot:=true`` (horizon controller)
+
+for visualization in rviz:
+- ``roscd horizon_navigation && rviz -d config/rviz/concert_gmap.rviz``
+
