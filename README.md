@@ -28,5 +28,5 @@ For more implementation details, check:
 - ``mon launch concert_horizon concert_controller.launch xbot:=true`` (horizon controller)
 
 for visualization in rviz:
-- ``roscd horizon_navigation && rviz -d config/rviz/concert_gmap.rviz``
+- ``roscd horizon_navigation && rviz -d config/rviz/concert_nav.rviz``
 
