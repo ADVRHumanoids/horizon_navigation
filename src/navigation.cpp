@@ -16,7 +16,7 @@ Navigation::Navigation(VelodyneOccupancyMap::Ptr velodyne_occupancy_map,
 
 }
 
-bool Navigation::update(const nav_msgs::OccupancyGrid occupancy_grid, const Eigen::Isometry3d transform, std::map<std::string, sensor_msgs::Range::ConstPtr> range_msgs)
+bool Navigation::update(const nav_msgs::OccupancyGrid occupancy_grid, const Eigen::Isometry3d transform, std::map<std::string, sensor_msgs::Range> range_msgs)
 {
 
     grid_map::Position base_link_T_map_position(transform.inverse().translation().x(),
@@ -24,15 +24,12 @@ bool Navigation::update(const nav_msgs::OccupancyGrid occupancy_grid, const Eige
 
     for (auto range_msg : range_msgs)
     {
-        if (range_msg.second)
-        {
-            _sonar_occupancy_map->setData(range_msg.first,
-                                          range_msg.second->header.frame_id,
-                                          range_msg.second->range,
-                                          range_msg.second->min_range,
-                                          range_msg.second->max_range,
-                                          range_msg.second->field_of_view);
-        }
+        _sonar_occupancy_map->setData(range_msg.first,
+                                      range_msg.second.header.frame_id,
+                                      range_msg.second.range,
+                                      range_msg.second.min_range,
+                                      range_msg.second.max_range,
+                                      range_msg.second.field_of_view);
     }
 
 
@@ -110,5 +107,10 @@ grid_map::GridMap Navigation::getVelodyneLocalMap()
 grid_map::GridMap Navigation::getSonarLocalMap()
 {
     return _local_sonar_grid_map;
+}
+
+grid_map::GridMap Navigation::getBlindZone()
+{
+    return _exclusion_submap;
 }
 

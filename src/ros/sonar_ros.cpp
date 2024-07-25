@@ -126,7 +126,7 @@ std::vector<SonarOccupancyMapROS::SonarConfig> SonarOccupancyMapROS::load_param_
     return sonar_config;
 }
 
-std::map<std::string, sensor_msgs::Range::ConstPtr> SonarOccupancyMapROS::getRanges()
+std::map<std::string, sensor_msgs::Range> SonarOccupancyMapROS::getRanges()
 {
     return _range_msgs;
 }
@@ -145,9 +145,9 @@ void SonarOccupancyMapROS::init_subscribers()
 {
     for (auto sensor : _sensor_topics)
     {
-        _range_subs[sensor.first] = _nh.subscribe<sensor_msgs::Range>(sensor.second, 1000, &SonarOccupancyMapROS::rangeCallback, this);
+        _range_subs[sensor.first] = _nh.subscribe<sensor_msgs::Range>(sensor.second, 1, &SonarOccupancyMapROS::rangeCallback, this);
         auto msg = ros::topic::waitForMessage<sensor_msgs::Range>(sensor.second, _nh);
-        _range_msgs[sensor.first] = msg;
+        _range_msgs[msg->header.frame_id] = *msg;
     }
 }
 
@@ -158,7 +158,7 @@ void SonarOccupancyMapROS::init_transform()
         for (auto &sensor : _sensors)
         {
             auto origin_T_sensor_transform = _tfBuffer.lookupTransform("base_link",
-                                                                       _range_msgs[sensor.first]->header.frame_id,
+                                                                       _range_msgs[sensor.first].header.frame_id,
                                                                        ros::Time(0), //_latest_local_map->header.stamp
                                                                        ros::Duration(1.0));
 
@@ -176,7 +176,7 @@ void SonarOccupancyMapROS::init_transform()
 
 void SonarOccupancyMapROS::rangeCallback(const sensor_msgs::Range::ConstPtr& msg)
 {
-    _range_msgs[msg->header.frame_id] = msg;
+    _range_msgs[msg->header.frame_id] = *msg;
 }
 
 void SonarOccupancyMapROS::spin()
@@ -209,17 +209,16 @@ void SonarOccupancyMapROS::update()
 
     for (auto range_msg : _range_msgs)
     {
-        if (range_msg.second)
-        {
-            _sonar_occupancy_map->setData(range_msg.first,
-                                          range_msg.second->header.frame_id,
-                                          range_msg.second->range,
-                                          range_msg.second->min_range,
-                                          range_msg.second->max_range,
-                                          range_msg.second->field_of_view);
+        _sonar_occupancy_map->setData(range_msg.first,
+                                      range_msg.second.header.frame_id,
+                                      range_msg.second.range,
+                                      range_msg.second.min_range,
+                                      range_msg.second.max_range,
+                                      range_msg.second.field_of_view);
 
-            _sonar_occupancy_map->update();
-        }
+        _sonar_occupancy_map->update();
+        
+        
     }
 
     _map = _sonar_occupancy_map->getMap();

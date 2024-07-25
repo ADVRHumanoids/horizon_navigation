@@ -14,6 +14,7 @@ NavigationROS::NavigationROS(double rate):
 
     _local_map_publisher = _nh.advertise<nav_msgs::OccupancyGrid>("navigation_map", 1, true);
     _local_sonar_map_publisher = _nh.advertise<nav_msgs::OccupancyGrid>("sonar_map", 1, true);
+    _blind_zone_publisher = _nh.advertise<nav_msgs::OccupancyGrid>("blind_zone", 1, true);
 
 }
 
@@ -31,6 +32,7 @@ bool NavigationROS::update()
 
         _local_grid_map = _navigation->getVelodyneLocalMap();
         _local_sonar_grid_map = _navigation->getSonarLocalMap();
+        _blind_zone_map = _navigation->getBlindZone();
 
         return true;
     }
@@ -57,9 +59,9 @@ void NavigationROS::spin()
                 grid_map::GridMapRosConverter::toOccupancyGrid(_local_sonar_grid_map, "sonar", -100, 100, sonar_occupancy_grid_map);
                 _local_sonar_map_publisher.publish(sonar_occupancy_grid_map);
 
-//                nav_msgs::OccupancyGrid exclusion_zone_occupancy_grid_map;
-//                grid_map::GridMapRosConverter::toOccupancyGrid(_exclusion_submap, _grid_map_layer_name, -100, 100, exclusion_zone_occupancy_grid_map);
-//                _blind_zone_pub.publish(exclusion_zone_occupancy_grid_map);
+               nav_msgs::OccupancyGrid exclusion_zone_occupancy_grid_map;
+               grid_map::GridMapRosConverter::toOccupancyGrid(_blind_zone_map, "obstacles", -100, 100, exclusion_zone_occupancy_grid_map);
+               _blind_zone_publisher.publish(exclusion_zone_occupancy_grid_map);
             }
 
         }

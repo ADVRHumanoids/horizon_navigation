@@ -17,10 +17,11 @@ public:
 
     bool update(const nav_msgs::OccupancyGrid occupancy_grid,
                 const Eigen::Isometry3d transform,
-                std::map<std::string, sensor_msgs::Range::ConstPtr> range_messages);
+                std::map<std::string, sensor_msgs::Range> range_messages);
 
     grid_map::GridMap getVelodyneLocalMap();
     grid_map::GridMap getSonarLocalMap();
+    grid_map::GridMap getBlindZone();
 
 private:
 

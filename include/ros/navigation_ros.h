@@ -31,9 +31,9 @@ private:
 
     Navigation::Ptr _navigation;
 
-    grid_map::GridMap _local_grid_map, _local_sonar_grid_map;
+    grid_map::GridMap _local_grid_map, _local_sonar_grid_map, _blind_zone_map;
 
-    ros::Publisher _local_map_publisher, _local_sonar_map_publisher;
+    ros::Publisher _local_map_publisher, _local_sonar_map_publisher, _blind_zone_publisher;
 
 
 

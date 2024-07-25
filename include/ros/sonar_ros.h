@@ -32,7 +32,7 @@ public:
     void update();
     grid_map::GridMap getMap();
     static std::vector<SonarOccupancyMapROS::SonarConfig> load_param_file(ros::NodeHandle nh);
-    std::map<std::string, sensor_msgs::Range::ConstPtr> getRanges();
+    std::map<std::string, sensor_msgs::Range> getRanges();
     SonarOccupancyMap::Ptr getSonarOccupancyMap();
 
 
@@ -54,7 +54,7 @@ private:
     std::map<std::string, SonarOccupancyMap::Sonar::Ptr> _sensors;
     std::map<std::string, std::string> _sensor_topics;
 
-    std::map<std::string, sensor_msgs::Range::ConstPtr> _range_msgs;
+    std::map<std::string, sensor_msgs::Range> _range_msgs;
 
     tf2_ros::Buffer _tfBuffer;
     tf2_ros::TransformListener _tfListener;

@@ -95,6 +95,8 @@ bool SonarOccupancyMap::update()
     for (auto sensor_name : _sensors_names)
     {
         updateGridMapWithSonar(_map, sensor_name, "sonar_map");
+
+        // clearSonarCone(_map, sensor_name, "sonar_map", Eigen::Isometry3d::Identity());
     }
 
     return true;
@@ -111,8 +113,10 @@ bool SonarOccupancyMap::clearSonarCone(grid_map::GridMap& grid_map,
                                        Eigen::Isometry3d map_transform)
 {
     auto sonar = _sensors[sensor_name];
-
-    for (auto range = sonar->detection_range; range > 0.0; range -= grid_map.getResolution())
+    double min_range_sensor_padding = 0.03;
+    double min_range_sonar = _sensor_updates[sensor_name].min_range + min_range_sensor_padding;
+    
+    for (auto range = sonar->detection_range; range > min_range_sonar; range -= grid_map.getResolution())
     {
 
         double max_resolution = (2 * tan(_sensor_updates[sensor_name].field_of_view/2) * range) / grid_map.getResolution();
@@ -145,7 +149,7 @@ void SonarOccupancyMap::updateGridMapWithSonar(grid_map::GridMap& grid_map,
     auto sonar = _sensors[sensor_name];
 
     if (getSensorsStatus(sensor_name))
-    {
+    {   
         for (auto iterator = 0; iterator < sonar->arc_resolution; iterator++)
         {
             // compute the range
@@ -170,9 +174,12 @@ void SonarOccupancyMap::updateGridMapWithSonar(grid_map::GridMap& grid_map,
 
 bool SonarOccupancyMap::getSensorsStatus(std::string sensor_name)
 {
-    if (_sensor_updates[sensor_name].range <= _sensors[sensor_name]->detection_range)
+    if (_sensor_updates[sensor_name].range >= 0.0) // remove wrong negative values
     {
-        return true;
+        if (_sensor_updates[sensor_name].range <= _sensors[sensor_name]->detection_range)
+        {
+            return true;
+        }
     }
 
     return false;
