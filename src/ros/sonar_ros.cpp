@@ -143,11 +143,19 @@ void SonarOccupancyMapROS::init_publishers()
 
 void SonarOccupancyMapROS::init_subscribers()
 {
+
     for (auto sensor : _sensor_topics)
     {
-        _range_subs[sensor.first] = _nh.subscribe<sensor_msgs::Range>(sensor.second, 1, &SonarOccupancyMapROS::rangeCallback, this);
+
+        std::string sensor_name = sensor.first;
+        _range_subs[sensor_name] = _nh.subscribe<sensor_msgs::Range>(sensor.second, 1,
+                                                                     [this, sensor_name](const sensor_msgs::Range::ConstPtr& msg) {this->rangeCallback(msg, sensor_name);});
+
+
+
         auto msg = ros::topic::waitForMessage<sensor_msgs::Range>(sensor.second, _nh);
-        _range_msgs[msg->header.frame_id] = *msg;
+        _range_msgs[sensor_name] = *msg;
+
     }
 }
 
@@ -174,9 +182,9 @@ void SonarOccupancyMapROS::init_transform()
     }
 }
 
-void SonarOccupancyMapROS::rangeCallback(const sensor_msgs::Range::ConstPtr& msg)
+void SonarOccupancyMapROS::rangeCallback(const sensor_msgs::Range::ConstPtr& msg, const std::string& sensor_name)
 {
-    _range_msgs[msg->header.frame_id] = *msg;
+    _range_msgs[sensor_name.c_str()] = *msg;
 }
 
 void SonarOccupancyMapROS::spin()

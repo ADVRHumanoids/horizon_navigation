@@ -41,7 +41,7 @@ private:
     void init_publishers();
     void init_subscribers();
     void init_transform();
-    void rangeCallback(const sensor_msgs::Range::ConstPtr& msg);
+    void rangeCallback(const sensor_msgs::Range::ConstPtr& msg, const std::string& sensor_name);
 
     std::map<std::string, ros::Subscriber> _range_subs;
     ros::Publisher _sonar_map_publisher;

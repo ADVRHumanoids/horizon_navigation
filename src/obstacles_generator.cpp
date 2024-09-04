@@ -28,15 +28,6 @@ ObstacleGenerator::ObstacleGenerator(double grid_height, double grid_width, doub
     _angle_threshold = _radius_obstacle;
     _max_obstacle_num = 2 * M_PI / _angle_threshold; // technically, it's the circle divided by the angle treshold
 
-//    std::vector<Obstacle> _grid_slices(2 * M_PI / _angle_threshold);
-
-//    if (!ros::isInitialized())
-//    {
-//    std::cout << "Ros not initialized. Initializing." << std::endl;
-//    int argc = 0;
-//    char ** argv = nullptr;
-//    ros::init(argc, argv, "obstacle_generator_node");
-//    }
 
     _init_publishers();
 

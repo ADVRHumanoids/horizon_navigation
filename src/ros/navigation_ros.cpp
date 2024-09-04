@@ -20,9 +20,10 @@ NavigationROS::NavigationROS(double rate):
 
 bool NavigationROS::update()
 {
-    
+
     auto _latest_local_map = _velodyne_ros->getSensedOccupancyMap();
-    
+
+
     if (_latest_local_map)
     {
 
