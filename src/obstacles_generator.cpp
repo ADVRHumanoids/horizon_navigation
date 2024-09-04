@@ -102,14 +102,32 @@ void ObstacleGenerator::setBlindsight()
         return distance_squared < radius_squared;
     };
 
+    auto ellipse = [this](Obstacle::Ptr obstacle, Eigen::Vector2d origin, Eigen::Matrix2d axes)
+    {
+        Eigen::Vector2d obs_origin(obstacle->getOrigin().x(), obstacle->getOrigin().y());
+        Eigen::Vector2d diff = obs_origin - origin;
+        double distance = diff.transpose() * axes.inverse() * diff;
+
+        return distance <= 1.0;
+    };
+
     Eigen::Vector2d origin_blindzone(1.0, 0.0);
+    // circle
     double radius_blindzone = 0.5;
+
+//    ellipse
+
+    Eigen::Vector2d axes(0.5, 0.5);
+    Eigen::Matrix2d axes_blindzone;
+    axes_blindzone << axes[0]*axes[0], 0,
+                      0,               axes[1]*axes[1];
 
     // remove obstacles in blind angle
     _obstacles.erase(std::remove_if(_obstacles.begin(),
                                     _obstacles.end(),
 //                                    std::bind(circle, std::placeholders::_1, origin_blindzone, radius_blindzone)
-                                    std::bind(cone, std::placeholders::_1, _min_angle, _max_angle)
+//                                    std::bind(cone, std::placeholders::_1, _min_angle, _max_angle)
+                                    std::bind(ellipse, std::placeholders::_1, origin_blindzone, axes_blindzone)
                                     ),
 
                      _obstacles.end());
