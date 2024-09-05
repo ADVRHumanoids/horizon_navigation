@@ -80,7 +80,6 @@ bool ObstacleGenerator::addObstacle(Obstacle::Ptr obstacle)
 
 void ObstacleGenerator::clearObstacles()
 {
-    _obstacle_markers.markers.clear(); // remove from here
     _obstacles.clear();
 }
 
@@ -176,6 +175,7 @@ void ObstacleGenerator::addObstacleViz(int id, Eigen::Vector3d origin, Eigen::Ve
     obstacle_marker.color.r = color.r;
     obstacle_marker.color.g = color.g;
     obstacle_marker.color.b = color.b;
+    // obstacle_marker.lifetime = ros::Duration(0.1);
 
     _obstacle_markers.markers.push_back(obstacle_marker);
 
@@ -183,32 +183,43 @@ void ObstacleGenerator::addObstacleViz(int id, Eigen::Vector3d origin, Eigen::Ve
 
 void ObstacleGenerator::visualizeObstaclesViz()
 {
+
+    if (!_obstacle_markers.markers.empty())
+    {
+        visualization_msgs::MarkerArray delete_markers;
+        auto delete_marker = visualization_msgs::Marker();
+        delete_marker.action = visualization_msgs::Marker::DELETEALL;
+        delete_markers.markers.push_back(delete_marker);
+        _obstacle_publisher.publish(delete_markers);
+    }
+
+    _obstacle_markers.markers.clear(); // remove from here
+
     //  visualize obstacle
-        auto id_obs = 0;
-        _obstacle_markers.markers.clear();
-        std_msgs::ColorRGBA color_marker;
-        for (auto elem : _obstacles)
+    auto id_obs = 0;
+    std_msgs::ColorRGBA color_marker;
+    for (auto elem : _obstacles)
+    {
+
+        if (auto obs = std::dynamic_pointer_cast<SphereObstacle>(elem))
         {
-
-            if (auto obs = std::dynamic_pointer_cast<SphereObstacle>(elem))
+            if (id_obs < _max_obstacle_num)
             {
-                if (id_obs < _max_obstacle_num)
-                {
-                    // Green
-                    color_marker.r = 0.0;
-                    color_marker.g = 1.0;
-                    color_marker.b = 0.0;
-                    color_marker.a = 1.0;
+                // Green
+                color_marker.r = 0.0;
+                color_marker.g = 1.0;
+                color_marker.b = 0.0;
+                color_marker.a = 1.0;
 
-                }
-                else
-                {
-                    // Yellow
-                    color_marker.r = 1.0;
-                    color_marker.g = 1.0;
-                    color_marker.b = 0.0;
-                    color_marker.a = 0.1;
-                }
+            }
+            else
+            {
+                // Yellow
+                color_marker.r = 1.0;
+                color_marker.g = 1.0;
+                color_marker.b = 0.0;
+                color_marker.a = 0.1;
+            }
 
 //                auto discretized_angle = static_cast<int>(obs->getAngle() / _angle_threshold);
 //                auto normalized_angle = static_cast<double>(discretized_angle + 15) / 30;
@@ -222,15 +233,15 @@ void ObstacleGenerator::visualizeObstaclesViz()
 //                std::cout << color_marker.g << std::endl;
 //                std::cout << color_marker.b << std::endl;
 
-                addObstacleViz(id_obs, obs->getOrigin(), obs->getRadius(), color_marker);
-                id_obs++;
-            }
+            addObstacleViz(id_obs, obs->getOrigin(), obs->getRadius(), color_marker);
+            id_obs++;
         }
+    }
 
-    //    std::cout << "number of obstacles founds: " << id_obs << std::endl;
+//    std::cout << "number of obstacles founds: " << id_obs << std::endl;
 
-        // publish obstacles
-        _obstacle_publisher.publish(_obstacle_markers);
+    // publish obstacles
+    _obstacle_publisher.publish(_obstacle_markers);
 }
 
 void ObstacleGenerator::_update()
