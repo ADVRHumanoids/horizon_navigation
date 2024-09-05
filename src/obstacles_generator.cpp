@@ -150,7 +150,7 @@ void ObstacleGenerator::_init_subscribers(std::vector<std::string> topic_names)
 
 void ObstacleGenerator::_init_publishers()
 {
-    _obstacle_publisher = _nh.advertise<visualization_msgs::MarkerArray>("obstacles", 10);
+    _obstacle_publisher = _nh.advertise<visualization_msgs::MarkerArray>(_occupancy_grid_topic_names[0] + "/obstacles" , 1);
 }
 
 void ObstacleGenerator::addObstacleViz(int id, Eigen::Vector3d origin, Eigen::Vector3d radius, std_msgs::ColorRGBA color = _get_default_color()) //std_msgs::ColorRGBA color = _get_default_color()
@@ -185,6 +185,7 @@ void ObstacleGenerator::visualizeObstaclesViz()
 {
     //  visualize obstacle
         auto id_obs = 0;
+        _obstacle_markers.markers.clear();
         std_msgs::ColorRGBA color_marker;
         for (auto elem : _obstacles)
         {
