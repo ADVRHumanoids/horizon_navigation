@@ -49,6 +49,7 @@ target_include_directories(${LIBRARY_TARGET_NAME}
 # =============================
 
 add_library(horizon_navigation_ros SHARED
+    src/ros/lidar_sonar_ros.cpp
     src/ros/velodyne_ros.cpp
     src/ros/navigation_ros.cpp
     src/ros/obstacle_generator_ros.cpp
@@ -67,6 +68,15 @@ target_link_libraries(horizon_navigation_ros
 #target_link_libraries(obstacle_generator_node
 #    horizon_navigation_ros
 #    ${catkin_LIBRARIES})
+
+# =============================
+
+add_executable(lidar_sonar_node
+    src/ros/nodes/lidar_sonar_node.cpp)
+
+target_link_libraries(lidar_sonar_node
+    horizon_navigation_ros
+    ${catkin_LIBRARIES})
 
 # =============================
 
