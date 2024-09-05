@@ -54,7 +54,7 @@ casadi::Function CasadiObstacle::simpleFormulation()
     auto obstacle_radius = casadi::SX::sym("obstacle_radius", dim);
     auto obstacle_robot = casadi::SX::sym("obstacle_robot", dim);
 
-    auto f = casadi::SX::sumsqr(robot_pos - obstacle_origin) - casadi::SX::pow(obstacle_radius + obstacle_robot, 2);
+    auto f = casadi::SX::sumsqr(robot_pos - obstacle_origin) - casadi::SX::pow(obstacle_radius(0) + obstacle_robot(0), 2);
 
     casadi::Function ObstacleFun("simple_obstacle", {robot_pos, obstacle_origin, obstacle_radius, obstacle_robot}, {f}, {"robot_pos", "obstacle_origin", "obstacle_radius", "obstacle_robot"}, {"obstacle"});
 
