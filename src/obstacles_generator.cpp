@@ -175,7 +175,6 @@ void ObstacleGenerator::addObstacleViz(int id, Eigen::Vector3d origin, Eigen::Ve
     obstacle_marker.color.r = color.r;
     obstacle_marker.color.g = color.g;
     obstacle_marker.color.b = color.b;
-    // obstacle_marker.lifetime = ros::Duration(0.1);
 
     _obstacle_markers.markers.push_back(obstacle_marker);
 
@@ -184,6 +183,7 @@ void ObstacleGenerator::addObstacleViz(int id, Eigen::Vector3d origin, Eigen::Ve
 void ObstacleGenerator::visualizeObstaclesViz()
 {
 
+    // remove all markers visualization at each loop
     if (!_obstacle_markers.markers.empty())
     {
         visualization_msgs::MarkerArray delete_markers;
