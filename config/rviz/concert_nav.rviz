@@ -7,8 +7,7 @@ Panels:
         - /Global Options1
         - /Status1
         - /TF1/Frames1
-        - /obstacles_sonar1
-      Splitter Ratio: 0.5
+      Splitter Ratio: 0.5621761679649353
     Tree Height: 1106
   - Class: rviz/Selection
     Name: Selection
@@ -736,20 +735,12 @@ Visualization Manager:
                 {}
       Update Interval: 0
       Value: true
-    - Class: rviz/Marker
-      Enabled: true
-      Marker Topic: /robot_marker
-      Name: robot_marker
-      Namespaces:
-        sphere: true
-      Queue Size: 100
-      Value: true
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /costmap_node/costmap/costmap/obstacles
       Name: obstacles_lidar
       Namespaces:
-        sphere: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -757,7 +748,23 @@ Visualization Manager:
       Marker Topic: /sonar_map/obstacles
       Name: obstacles_sonar
       Namespaces:
-        sphere: true
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: visualization_marker_array
+      Name: robot_marker_sonar
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: visualization_marker_array
+      Name: robot_marker_lidar
+      Namespaces:
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 0.5
@@ -884,9 +891,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.7447969317436218
+      Pitch: 0.6597970128059387
       Target Frame: <Fixed Frame>
-      Yaw: 0.0722474604845047
+      Yaw: 6.2404327392578125
     Saved: ~
 Window Geometry:
   Displays:
