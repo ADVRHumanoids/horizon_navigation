@@ -23,6 +23,7 @@ public:
         std::string topic_name;
         double detection_range = 0.5;
         double arc_resolution = 30;
+        std::string layer_name = "sonars";
     };
 
     typedef std::shared_ptr<SonarOccupancyMapROS> Ptr;
@@ -44,7 +45,7 @@ private:
     void rangeCallback(const sensor_msgs::Range::ConstPtr& msg, const std::string& sensor_name);
 
     std::map<std::string, ros::Subscriber> _range_subs;
-    ros::Publisher _sonar_map_publisher;
+    std::map<std::string, ros::Publisher> _sonar_map_publisher;
     ros::NodeHandle _nh, _nhpr;
 
     ros::Rate _rate;

@@ -1,7 +1,7 @@
 #include <ros/sonar_ros.h>
+#include <chrono>
 
 SonarOccupancyMapROS::SonarOccupancyMapROS():
-//    _sensor_topic_names(sensor_topic_names),
     _tfBuffer(),
     _tfListener(_tfBuffer),
     _rate(30.0)
@@ -20,6 +20,7 @@ SonarOccupancyMapROS::SonarOccupancyMapROS():
         auto sonar = std::make_shared<SonarOccupancyMap::Sonar>();
         sonar->arc_resolution = sonar_info.arc_resolution;
         sonar->detection_range = sonar_info.detection_range;
+        sonar->layer_name = sonar_info.layer_name;
 
         _sensors[sonar_info.sensor_name] = sonar;
     }
@@ -110,6 +111,15 @@ std::vector<SonarOccupancyMapROS::SonarConfig> SonarOccupancyMapROS::load_param_
                     ROS_WARN("Sensor '%s' missing param 'arc_resolution'. Using default: '%f'", sensor_name.c_str(), sensor_info.arc_resolution);
                 }
 
+                if (sensor_config_yaml["layer"])
+                {
+                    sensor_info.layer_name = sensor_config_yaml["layer"].as<std::string>();
+                }
+                else
+                {
+                    ROS_WARN("Sensor '%s' missing param 'layer_name'. Using default: '%s'", sensor_name.c_str(), sensor_info.layer_name.c_str());
+                }
+
                 sonar_config.push_back(sensor_info);
             }
         }
@@ -122,6 +132,7 @@ std::vector<SonarOccupancyMapROS::SonarConfig> SonarOccupancyMapROS::load_param_
     {
         ROS_ERROR("YAML Exception: %s", e.what());
     }
+
 
     return sonar_config;
 }
@@ -138,7 +149,13 @@ SonarOccupancyMap::Ptr SonarOccupancyMapROS::getSonarOccupancyMap()
 
 void SonarOccupancyMapROS::init_publishers()
 {
-    _sonar_map_publisher = _nh.advertise<nav_msgs::OccupancyGrid>("sonar_map", 1, true);
+    for (auto sensor : _sensors)
+    {
+        if (_sonar_map_publisher.find(sensor.second->layer_name) == _sonar_map_publisher.end()) 
+        {
+            _sonar_map_publisher[sensor.second->layer_name] = _nh.advertise<nav_msgs::OccupancyGrid>("sonar_map/" + sensor.second->layer_name, 1, true);
+        }    
+    }
 }
 
 void SonarOccupancyMapROS::init_subscribers()
@@ -196,9 +213,12 @@ void SonarOccupancyMapROS::spin()
         {
             update();
 
-            nav_msgs::OccupancyGrid message;
-            grid_map::GridMapRosConverter::toOccupancyGrid(_map, "sonar_map", -100, 100, message);
-            _sonar_map_publisher.publish(message);
+            for (auto sensor : _sensors)
+            {
+                nav_msgs::OccupancyGrid message;
+                grid_map::GridMapRosConverter::toOccupancyGrid(_map, sensor.second->layer_name, -100, 100, message);
+                _sonar_map_publisher[sensor.second->layer_name].publish(message);
+            }
 
             _rate.sleep();
             ros::spinOnce();

@@ -20,6 +20,7 @@ public:
         Eigen::Isometry3d origin_T_sensor;
         double detection_range;
         double arc_resolution;
+        std::string layer_name;
     };
 
     SonarOccupancyMap(Eigen::Vector2d map_origin);

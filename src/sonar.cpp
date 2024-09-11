@@ -8,33 +8,12 @@ SonarOccupancyMap::SonarOccupancyMap(Eigen::Vector2d map_origin): //= std::vecto
 
     _map.setPosition(_map_origin);
     _map.setFrameId("base_link");
-    _map.setGeometry(grid_map::Length(6.0, 6.0), 0.01);
+    _map.setGeometry(grid_map::Length(2.0, 2.0), 0.01);
 
     ROS_INFO("Created map with size %f x %f m (%i x %i cells).", _map.getLength().x(),
                                                                  _map.getLength().y(),
                                                                  _map.getSize()(0),
                                                                  _map.getSize()(1));
-
-//    double default_detection_range = 0.4;
-//    double default_arc_resolution = 20;
-
-//    for (auto sonar : sonar_transform)
-//    {
-//        SonarSensor sonar_info;
-//        sonar_info.frame_id = sonar.first;
-//        sonar_info.origin_T_sensor = sonar.second;
-//        sonar_info.arc_resolution = default_arc_resolution;
-
-//        if (sonar_detection_range.find(sonar.first) == sonar_detection_range.end())
-//        {
-//          sonar_info.detection_range = default_detection_range;
-//        }
-//        else
-//        {
-//          sonar_info.detection_range = sonar_detection_range[sonar.first];
-//        }
-//        _sensors[sonar.first] = sonar_info;
-//    }
 
 }
 
@@ -48,10 +27,17 @@ bool SonarOccupancyMap::addSensor(std::string name, SonarOccupancyMap::Sonar::Pt
 
     _sensors_names.push_back(name);
 
+    if (!_map.exists(sonar->layer_name))
+    {
+        _map.add(sonar->layer_name);
+    }
+
     std::cout << "adding sensor " << "'" << name << "'" << std::endl;
+    std::cout << "       layer: " << _sensors[name]->layer_name << std::endl;
     std::cout << "       detection range: " << _sensors[name]->detection_range << std::endl;
     std::cout << "       arc_resolution: " << _sensors[name]->arc_resolution << std::endl;
     std::cout << "       transform: " << _sensors[name]->origin_T_sensor.translation().transpose() << std::endl;
+
     std::cout << std::endl;
 
     return true;
@@ -90,13 +76,17 @@ bool SonarOccupancyMap::setData(std::string name, std::string frame_id, double r
 bool SonarOccupancyMap::update()
 {
 
-    _map.clear("sonar_map");
+    // clear all the map layers
+    _map.clearAll();
+    // for (auto sensor_name : _sensors_names)
+    // {
+    //     _map.clear(_sensors[sensor_name]->layer_name);
+    // }
 
     for (auto sensor_name : _sensors_names)
     {
-        updateGridMapWithSonar(_map, sensor_name, "sonar_map");
+        updateGridMapWithSonar(_map, sensor_name, _sensors[sensor_name]->layer_name);
 
-        // clearSonarCone(_map, sensor_name, "sonar_map", Eigen::Isometry3d::Identity());
     }
 
     return true;
