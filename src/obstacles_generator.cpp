@@ -3,7 +3,7 @@
 ObstacleGenerator::ObstacleGenerator(double grid_height, 
                                      double grid_width, 
                                      double grid_resolution, 
-                                     std::vector<std::string> input_topic_names,
+                                     std::string input_topic_name,
                                      std::string rviz_markers_topic_name):
     _grid_resolution(grid_resolution),
     _grid_origin(0, 0, 0),
@@ -20,29 +20,25 @@ ObstacleGenerator::ObstacleGenerator(double grid_height,
     std::cout << "Grid height: " << _grid_height_cells << std::endl;
     std::cout << "Grid width: " << _grid_width_cells << std::endl;
 
+    _occupancy_grid_topic_name = input_topic_name;
 
     // initializing occupancy matrices
-    for (auto topic_name : input_topic_names)
-    {
-        _occupancy_grid_topic_names.push_back(topic_name);
-        _occupancy_matrices[topic_name].resize(_grid_height_cells, _grid_width_cells);
-        _occupancy_matrices[topic_name].setZero();
-    }
+    _occupancy_matrix.resize(_grid_height_cells, _grid_width_cells);
+    _occupancy_matrix.setZero();
 
     _radius_obstacle = _grid_resolution;
     _angle_threshold = _radius_obstacle;
     _max_obstacle_num = 2 * M_PI / _angle_threshold; // technically, it's the circle divided by the angle treshold
+    
 
-    _publisher_name = _occupancy_grid_topic_names[0] + "/obstacles";
+    std::string publisher_name = _occupancy_grid_topic_name + "/obstacles";
     if (!rviz_markers_topic_name.empty())
     {
-        _publisher_name = rviz_markers_topic_name;
+        publisher_name = rviz_markers_topic_name;
     }
-    _init_publishers(_publisher_name);
 
-    // name of topic from which the occupancy map is taken
-//    std::string occupancy_grid_topic_name = "/map";
-    _init_subscribers(_occupancy_grid_topic_names);
+    _init_publisher(publisher_name);
+    _init_subscriber(input_topic_name);
 
     _init_load_config();
 }
@@ -123,8 +119,7 @@ void ObstacleGenerator::setBlindsight()
     // circle
     double radius_blindzone = 0.5;
 
-//    ellipse
-
+    // ellipse
     Eigen::Vector2d axes(0.5, 0.5);
     Eigen::Matrix2d axes_blindzone;
     axes_blindzone << axes[0]*axes[0], 0,
@@ -141,22 +136,12 @@ void ObstacleGenerator::setBlindsight()
                      _obstacles.end());
 }
 
-void ObstacleGenerator::_init_subscribers(std::vector<std::string> topic_names)
+void ObstacleGenerator::_init_subscriber(std::string topic_name)
 {
-
-    for (const auto& topic_name : topic_names)
-    {
-
-        ros::Subscriber sub = _nh.subscribe<nav_msgs::OccupancyGrid>(topic_name,
-                                                                     10,
-                                                                     std::bind(&ObstacleGenerator::_occupancy_grid_callback, this, std::placeholders::_1, topic_name)
-                                                                     );
-
-        _occupancy_grid_subscribers[topic_name] = sub;
-    }
+    _occupancy_grid_subscriber = _nh.subscribe<nav_msgs::OccupancyGrid>(topic_name, 10, &ObstacleGenerator::_occupancy_grid_callback, this); 
 }
 
-void ObstacleGenerator::_init_publishers(std::string topic_name)
+void ObstacleGenerator::_init_publisher(std::string topic_name)
 {
     _obstacle_publisher = _nh.advertise<visualization_msgs::MarkerArray>(topic_name, 1);
 }
@@ -166,7 +151,7 @@ void ObstacleGenerator::addObstacleViz(int id, Eigen::Vector3d origin, Eigen::Ve
     auto obstacle_marker = visualization_msgs::Marker();
     obstacle_marker.header.frame_id = "base_link";
     obstacle_marker.header.stamp = ros::Time::now();
-    obstacle_marker.ns = "sphere"; //_publisher_name;
+    obstacle_marker.ns = _occupancy_grid_topic_name;
     obstacle_marker.id = id;
     obstacle_marker.type = visualization_msgs::Marker::SPHERE;
     obstacle_marker.action = visualization_msgs::Marker::ADD;
@@ -202,7 +187,7 @@ void ObstacleGenerator::visualizeObstaclesViz()
         _obstacle_publisher.publish(delete_markers);
     }
 
-    _obstacle_markers.markers.clear(); // remove from here
+    _obstacle_markers.markers.clear();
 
     //  visualize obstacle
     auto id_obs = 0;
@@ -230,24 +215,12 @@ void ObstacleGenerator::visualizeObstaclesViz()
                 color_marker.a = 0.1;
             }
 
-//                auto discretized_angle = static_cast<int>(obs->getAngle() / _angle_threshold);
-//                auto normalized_angle = static_cast<double>(discretized_angle + 15) / 30;
-//                color_marker.r = std::max(0.0, 1.0 - normalized_angle); // Red component
-//                color_marker.g = 1.0 - std::abs(normalized_angle - 0.5) * 2; // Green component
-//                color_marker.b = std::max(0.0, normalized_angle - 0.5) * 2; // Blue component
-//                color_marker.a = 1.0;
-
-//                std::cout << "addin obstacle [" << discretized_angle << "] with colors: " << std::endl;
-//                std::cout << color_marker.r << std::endl;
-//                std::cout << color_marker.g << std::endl;
-//                std::cout << color_marker.b << std::endl;
-
             addObstacleViz(id_obs, obs->getOrigin(), obs->getRadius(), color_marker);
             id_obs++;
         }
     }
 
-//    std::cout << "number of obstacles founds: " << id_obs << std::endl;
+//    std::cout << "number of obstacles founds for topic '" << _occupancy_grid_topic_name << "': " << id_obs << std::endl;
 
     // publish obstacles
     _obstacle_publisher.publish(_obstacle_markers);
@@ -256,11 +229,8 @@ void ObstacleGenerator::visualizeObstaclesViz()
 void ObstacleGenerator::_update()
 {
     // compute obstacles from occupancy grid coming from laserscan
-    for (auto occupancy_matrix : _occupancy_matrices)
-    {
-        obstaclesFromOccupacyGrid(occupancy_matrix.second);
-    }
-
+    obstaclesFromOccupacyGrid(_occupancy_matrix);
+    
     // remove blind spot given by setBlindAngle
     setBlindsight();
 
@@ -467,7 +437,7 @@ std::vector<Obstacle::Ptr> ObstacleGenerator::_sort_angle_distance()
 
 }
 
-void ObstacleGenerator::_occupancy_grid_callback(const nav_msgs::OccupancyGrid::ConstPtr& msg, const std::string& topic_name)
+void ObstacleGenerator::_occupancy_grid_callback(const nav_msgs::OccupancyGrid::ConstPtr& msg)
 {
 
     // Extract grid data from the message
@@ -489,7 +459,7 @@ void ObstacleGenerator::_occupancy_grid_callback(const nav_msgs::OccupancyGrid::
         for (int x = 0; x < _grid_width_cells; ++x)
         {
             int index = (start_y + y) * width + (start_x + x);
-            _occupancy_matrices[topic_name](x, y) = msg->data[index];
+            _occupancy_matrix(x, y) = msg->data[index];
         }
     }
 }

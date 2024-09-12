@@ -2,9 +2,6 @@
 #define OBSTACLESGENERATOR_H
 
  #include <Eigen/Dense>
-// #include <numeric>
-// #include <vector>
-// #include <iostream>
 #include <yaml-cpp/yaml.h>
 #include <memory>
 #include <ros/ros.h>
@@ -13,11 +10,7 @@
 #include <visualization_msgs/Marker.h>
 
 #include <obstacle.h>
-// #include <stdexcept>
-// #include <unordered_set>
-//#include <any>
-//#include <variant>
-//#include <functional>
+
 
 // divide ros from computing
 class ObstacleGenerator
@@ -31,7 +24,7 @@ public:
     ObstacleGenerator(double grid_height, 
                       double grid_width, 
                       double grid_resolution, 
-                      std::vector<std::string> topic_name = {"/map"},
+                      std::string topic_name = "/map",
                       std::string rviz_markers_topic_name = "");
                       
     typedef std::shared_ptr<ObstacleGenerator> Ptr;
@@ -48,7 +41,7 @@ public:
     bool setObstacleRadius(double radius);
     bool setMaxObstacleNum(int max_obstacle_num);
     bool setAngleThreshold(double angle);
-    void setBlindAngle(double min_angle, double max_angle);
+    void setBlindAngle(double min_angle, double mfax_angle);
 
     double getObstacleRadius();
     int getMaxObstacleNum();
@@ -58,9 +51,9 @@ public:
 
 private:
 
-    void _occupancy_grid_callback(const nav_msgs::OccupancyGrid::ConstPtr& msg, const std::string& matrix);
-    void _init_subscribers(std::vector<std::string> topic_name);
-    void _init_publishers(std::string topic_name);
+    void _occupancy_grid_callback(const nav_msgs::OccupancyGrid::ConstPtr& msg);
+    void _init_subscriber(std::string topic_name);
+    void _init_publisher(std::string topic_name);
     void _init_load_config();
 
 
@@ -77,7 +70,7 @@ private:
 
 
 
-    std::map<std::string, OccupancyMatrix> _occupancy_matrices;
+    OccupancyMatrix _occupancy_matrix;
     int _grid_height_cells;
     int _grid_width_cells;
     double _grid_resolution;
@@ -90,7 +83,7 @@ private:
 
     double _min_angle, _max_angle;
 
-    std::vector<std::string> _occupancy_grid_topic_names;
+    std::string _occupancy_grid_topic_name;
 
     YAML::Node _config;
 
@@ -98,10 +91,8 @@ private:
     std::vector<Obstacle::Ptr> _obstacles;
 
     ros::NodeHandle _nh, _nhpr;
-    std::map<std::string, ros::Subscriber> _occupancy_grid_subscribers;
+    ros::Subscriber _occupancy_grid_subscriber;
     ros::Publisher _obstacle_publisher;
-
-    std::string _publisher_name;
 
     visualization_msgs::MarkerArray _obstacle_markers;
 
