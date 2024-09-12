@@ -101,6 +101,8 @@ private:
     std::map<std::string, ros::Subscriber> _occupancy_grid_subscribers;
     ros::Publisher _obstacle_publisher;
 
+    std::string _publisher_name;
+
     visualization_msgs::MarkerArray _obstacle_markers;
 
 

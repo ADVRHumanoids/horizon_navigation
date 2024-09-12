@@ -33,8 +33,12 @@ ObstacleGenerator::ObstacleGenerator(double grid_height,
     _angle_threshold = _radius_obstacle;
     _max_obstacle_num = 2 * M_PI / _angle_threshold; // technically, it's the circle divided by the angle treshold
 
-
-    _init_publishers(_occupancy_grid_topic_names[0] + "/obstacles");
+    _publisher_name = _occupancy_grid_topic_names[0] + "/obstacles";
+    if (!rviz_markers_topic_name.empty())
+    {
+        _publisher_name = rviz_markers_topic_name;
+    }
+    _init_publishers(_publisher_name);
 
     // name of topic from which the occupancy map is taken
 //    std::string occupancy_grid_topic_name = "/map";
@@ -162,7 +166,7 @@ void ObstacleGenerator::addObstacleViz(int id, Eigen::Vector3d origin, Eigen::Ve
     auto obstacle_marker = visualization_msgs::Marker();
     obstacle_marker.header.frame_id = "base_link";
     obstacle_marker.header.stamp = ros::Time::now();
-    obstacle_marker.ns = "sphere";
+    obstacle_marker.ns = "sphere"; //_publisher_name;
     obstacle_marker.id = id;
     obstacle_marker.type = visualization_msgs::Marker::SPHERE;
     obstacle_marker.action = visualization_msgs::Marker::ADD;
