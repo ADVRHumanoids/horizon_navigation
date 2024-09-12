@@ -8,7 +8,12 @@ namespace py = pybind11;
 PYBIND11_MODULE(pyObstacleGenerator, m) {
 
     py::class_<ObstacleGenerator, ObstacleGenerator::Ptr>(m, "ObstacleGenerator")
-            .def(py::init<double, double, double, std::vector<std::string>>())
+            .def(py::init<double, double, double, std::vector<std::string>, std::string>(), py::arg("grid_height"), 
+                                                                                            py::arg("grid_width"),
+                                                                                            py::arg("grid_resolution"),
+                                                                                            py::arg("input_topic_names") = std::vector<std::string>{"/map"},
+                                                                                            py::arg("rviz_markers_topic_name") = ""
+                                                                                            )
             .def("run", &ObstacleGenerator::run)
             .def("setMaxObstacleNum", &ObstacleGenerator::setMaxObstacleNum)
             .def("setObstacleRadius", &ObstacleGenerator::setObstacleRadius)

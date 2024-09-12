@@ -28,7 +28,12 @@ public:
     typedef Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> OccupancyMatrix;
 
 
-    ObstacleGenerator(double grid_height, double grid_width, double grid_resolution, std::vector<std::string> topic_name = {"/map"});
+    ObstacleGenerator(double grid_height, 
+                      double grid_width, 
+                      double grid_resolution, 
+                      std::vector<std::string> topic_name = {"/map"},
+                      std::string rviz_markers_topic_name = "");
+                      
     typedef std::shared_ptr<ObstacleGenerator> Ptr;
 
     bool addObstacle(Obstacle::Ptr obstacle);
@@ -55,7 +60,7 @@ private:
 
     void _occupancy_grid_callback(const nav_msgs::OccupancyGrid::ConstPtr& msg, const std::string& matrix);
     void _init_subscribers(std::vector<std::string> topic_name);
-    void _init_publishers();
+    void _init_publishers(std::string topic_name);
     void _init_load_config();
 
 

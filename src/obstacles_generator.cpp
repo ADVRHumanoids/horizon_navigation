@@ -1,6 +1,10 @@
 #include <obstacles_generator.h>
 
-ObstacleGenerator::ObstacleGenerator(double grid_height, double grid_width, double grid_resolution, std::vector<std::string> topic_names):
+ObstacleGenerator::ObstacleGenerator(double grid_height, 
+                                     double grid_width, 
+                                     double grid_resolution, 
+                                     std::vector<std::string> input_topic_names,
+                                     std::string rviz_markers_topic_name):
     _grid_resolution(grid_resolution),
     _grid_origin(0, 0, 0),
     _min_angle(0.0),
@@ -8,6 +12,7 @@ ObstacleGenerator::ObstacleGenerator(double grid_height, double grid_width, doub
 {
     _nh = ros::NodeHandle("");
     _nhpr = ros::NodeHandle("~");
+
 
     _grid_height_cells = static_cast<int>(grid_height / _grid_resolution); // from meters to grid units
     _grid_width_cells = static_cast<int>(grid_width / _grid_resolution); // from meters to grid units
@@ -17,7 +22,7 @@ ObstacleGenerator::ObstacleGenerator(double grid_height, double grid_width, doub
 
 
     // initializing occupancy matrices
-    for (auto topic_name : topic_names)
+    for (auto topic_name : input_topic_names)
     {
         _occupancy_grid_topic_names.push_back(topic_name);
         _occupancy_matrices[topic_name].resize(_grid_height_cells, _grid_width_cells);
@@ -29,7 +34,7 @@ ObstacleGenerator::ObstacleGenerator(double grid_height, double grid_width, doub
     _max_obstacle_num = 2 * M_PI / _angle_threshold; // technically, it's the circle divided by the angle treshold
 
 
-    _init_publishers();
+    _init_publishers(_occupancy_grid_topic_names[0] + "/obstacles");
 
     // name of topic from which the occupancy map is taken
 //    std::string occupancy_grid_topic_name = "/map";
@@ -147,9 +152,9 @@ void ObstacleGenerator::_init_subscribers(std::vector<std::string> topic_names)
     }
 }
 
-void ObstacleGenerator::_init_publishers()
+void ObstacleGenerator::_init_publishers(std::string topic_name)
 {
-    _obstacle_publisher = _nh.advertise<visualization_msgs::MarkerArray>(_occupancy_grid_topic_names[0] + "/obstacles" , 1);
+    _obstacle_publisher = _nh.advertise<visualization_msgs::MarkerArray>(topic_name, 1);
 }
 
 void ObstacleGenerator::addObstacleViz(int id, Eigen::Vector3d origin, Eigen::Vector3d radius, std_msgs::ColorRGBA color = _get_default_color()) //std_msgs::ColorRGBA color = _get_default_color()
