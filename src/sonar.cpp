@@ -141,11 +141,19 @@ void SonarOccupancyMap::updateGridMapWithSonar(grid_map::GridMap& grid_map,
     if (getSensorsStatus(sensor_name))
     {   
         for (auto iterator = 0; iterator < sonar->arc_resolution; iterator++)
-        {
+        {   
+
+            double sensor_range = (_sensor_updates[sensor_name].range < _sensor_updates[sensor_name].min_range) ? _sensor_updates[sensor_name].min_range : _sensor_updates[sensor_name].range;
+
+            // if (sensor_name == "ultrasound_rl_lat")
+            // {
+            //     std::cout << "sensor_name: " << sensor_name << std::endl;
+            //     std::cout << "sensor_range: " << sensor_range << std::endl;
+            // }
             // compute the range
             double angle = - _sensor_updates[sensor_name].field_of_view / 2 + iterator * (_sensor_updates[sensor_name].field_of_view / sonar->arc_resolution);
-            double x_cell = _sensor_updates[sensor_name].range * cos(angle);
-            double y_cell = _sensor_updates[sensor_name].range * sin(angle);
+            double x_cell = sensor_range * cos(angle);
+            double y_cell = sensor_range * sin(angle);
 
             grid_map::Position3 point_sensor3d(x_cell, y_cell, 0.0);
             auto point_world3d = map_transform * sonar->origin_T_sensor * point_sensor3d;
